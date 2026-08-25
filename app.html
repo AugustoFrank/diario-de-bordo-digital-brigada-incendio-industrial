@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Diário de Bordo Digital</title>
+<script>
+(function(){
+  var t = localStorage.getItem('db_theme');
+  document.documentElement.setAttribute('data-theme', t === 'dark' ? 'dark' : 'light');
+})();
+</script>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="mark">DB</div>
+      <div>
+        <b>Diário de Bordo</b>
+        <span>Brigada Industrial</span>
+      </div>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-eyebrow">Operação</div>
+      <button class="nav-item" data-view="painel">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+        Painel geral
+      </button>
+      <button class="nav-item" data-view="novo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+        Novo diário
+      </button>
+      <button class="nav-item" data-view="historico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h11"/></svg>
+        Histórico
+      </button>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-eyebrow">Em breve</div>
+      <button class="nav-item" disabled style="opacity:.4;cursor:not-allowed;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h.01M15 9h.01M9 15h6"/></svg>
+        Inspeção por QR Code
+      </button>
+    </div>
+
+    <div class="sidebar-foot">
+      <div class="theme-row">
+        <span>Tema escuro</span>
+        <button class="theme-toggle" aria-label="Alternar tema escuro" title="Alternar tema">
+          <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+          <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+      </div>
+      <div class="user-chip">
+        <div class="avatar" id="avatarInitials">--</div>
+        <div class="who">
+          <b id="userName">—</b>
+          <span>Bombeiro em turno</span>
+        </div>
+      </div>
+      <a class="logout-link" id="logoutBtn">Sair do sistema</a>
+    </div>
+  </aside>
+
+  <!-- MOBILE TOPBAR -->
+  <div class="mobile-topbar">
+    <div class="brand">
+      <div class="mark">DB</div>
+      <div>
+        <b>Diário de Bordo</b>
+        <span>Brigada Industrial</span>
+      </div>
+    </div>
+    <div class="mobile-topbar-right">
+      <button class="theme-toggle" aria-label="Alternar tema escuro" title="Alternar tema">
+        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <div class="avatar" id="avatarInitialsMobile">--</div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="status-strip" id="statusStrip">
+      <span class="dot"></span>
+      <span id="statusStripText">Condição geral da unidade: Normal</span>
+    </div>
+
+    <div class="topbar">
+      <div>
+        <h1 id="pageTitle">Painel geral</h1>
+        <div class="subtitle" id="pageSubtitle">Visão consolidada da prontidão da unidade</div>
+      </div>
+      <div class="date-tag" id="topDate">—</div>
+    </div>
+
+    <!-- ===== VIEW: PAINEL ===== -->
+    <section class="view" id="view-painel">
+      <div class="kpis">
+        <div class="kpi">
+          <div class="kpi-label">Diários no mês</div>
+          <div class="kpi-value" id="kpiTotal">0</div>
+          <div class="kpi-hint">Registros de turno lançados</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Alterações em aberto</div>
+          <div class="kpi-value" id="kpiAlteracoes">0</div>
+          <div class="kpi-hint">Itens fora do padrão "Normal"</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Nível médio — pipa</div>
+          <div class="kpi-value" id="kpiPipa">0%</div>
+          <div class="kpi-hint">Água / LPT / combustível</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Última condição</div>
+          <div class="kpi-value" id="kpiUltima" style="font-size:19px;">—</div>
+          <div class="kpi-hint" id="kpiUltimaHint">—</div>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <div class="card">
+          <h2>Sistemas de proteção — situação atual</h2>
+          <p class="card-sub">Com base no último diário registrado por equipe</p>
+          <div id="barsWrap"></div>
+        </div>
+        <div class="card">
+          <h2>Pendências abertas</h2>
+          <p class="card-sub">Itens marcados como "Alterado" no último registro</p>
+          <div id="pendingWrap"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== VIEW: NOVO DIÁRIO ===== -->
+    <section class="view" id="view-novo">
+      <form id="diarioForm">
+
+        <div class="card">
+          <h2>Identificação do turno</h2>
+          <p class="card-sub">Data e responsável são vinculados automaticamente ao usuário logado</p>
+          <div class="grid3">
+            <div>
+              <span class="field-label">Data</span>
+              <input type="date" id="fData" required>
+            </div>
+            <div>
+              <span class="field-label">Bombeiro</span>
+              <div class="readonly-box" id="fNome">—</div>
+            </div>
+            <div>
+              <span class="field-label">Equipe</span>
+              <select id="fEquipe" required>
+                <option value="" disabled selected>Selecione</option>
+                <option>🦁 Leão</option>
+                <option>🐆 Onça</option>
+                <option>🦭 Foca</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Condições gerais da unidade</h2>
+          <p class="card-sub">Situação atual observada no início do turno</p>
+          <div class="status-toggle" data-group="condicao" data-tones="ok,warn,danger">
+            <button type="button" class="chip" data-value="Normal">Normal</button>
+            <button type="button" class="chip" data-value="Em alerta">Em alerta</button>
+            <button type="button" class="chip" data-value="Emergência em andamento">Emergência em andamento</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Sistemas de proteção</h2>
+          <p class="card-sub">Situação de cada sistema fixo de combate a incêndio</p>
+
+          <div style="margin-bottom:16px;">
+            <span class="field-label">Bomba de incêndio</span>
+            <div class="status-toggle" data-group="bomba" data-tones="ok,ok,danger">
+              <button type="button" class="chip" data-value="Automático">Automático</button>
+              <button type="button" class="chip" data-value="Manual">Manual</button>
+              <button type="button" class="chip" data-value="Inoperante">Inoperante</button>
+            </div>
+          </div>
+
+          <div style="margin-bottom:16px;">
+            <span class="field-label">Alarme e detecção</span>
+            <div class="status-toggle" data-group="alarmeDeteccao" data-tones="ok,danger">
+              <button type="button" class="chip" data-value="Normal">Normal</button>
+              <button type="button" class="chip" data-value="Falha / Silenciado">Falha / Silenciado</button>
+            </div>
+          </div>
+
+          <div>
+            <span class="field-label">Rede de hidrantes</span>
+            <div class="status-toggle" data-group="hidrantes" data-tones="ok,danger">
+              <button type="button" class="chip" data-value="Pressurizada">Pressurizada</button>
+              <button type="button" class="chip" data-value="Despressurizada">Despressurizada</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Verificações da unidade</h2>
+          <p class="card-sub">Quando "Alterado", descreva o que foi encontrado</p>
+
+          <div class="grid2">
+            <div id="blocoCentral">
+              <span class="field-label">Central de alarme</span>
+              <div class="status-toggle" data-group="central" data-tones="ok,warn">
+                <button type="button" class="chip" data-value="Normal">Normal</button>
+                <button type="button" class="chip" data-value="Alterado">Alterado</button>
+              </div>
+              <div class="alter-box" id="alterCentral">
+                <span class="field-label">Descreva a alteração</span>
+                <textarea id="fCentralDesc" placeholder="Ex.: sensor da área X apresentou falha"></textarea>
+              </div>
+            </div>
+
+            <div id="blocoCasa">
+              <span class="field-label">Casa de bombas</span>
+              <div class="status-toggle" data-group="casa" data-tones="ok,warn">
+                <button type="button" class="chip" data-value="Normal">Normal</button>
+                <button type="button" class="chip" data-value="Alterado">Alterado</button>
+              </div>
+              <div class="alter-box" id="alterCasa">
+                <span class="field-label">Descreva a alteração</span>
+                <textarea id="fCasaDesc" placeholder="Ex.: vazamento identificado na válvula"></textarea>
+              </div>
+            </div>
+
+            <div id="blocoArea">
+              <span class="field-label">Área de processo</span>
+              <div class="status-toggle" data-group="area" data-tones="ok,warn">
+                <button type="button" class="chip" data-value="Normal">Normal</button>
+                <button type="button" class="chip" data-value="Alterado">Alterado</button>
+              </div>
+              <div class="alter-box" id="alterArea">
+                <span class="field-label">Descreva a alteração</span>
+                <textarea id="fAreaDesc" placeholder="Descreva a alteração encontrada"></textarea>
+              </div>
+            </div>
+
+            <div id="blocoSub">
+              <span class="field-label">Subestações</span>
+              <div class="status-toggle" data-group="sub" data-tones="ok,warn">
+                <button type="button" class="chip" data-value="Normal">Normal</button>
+                <button type="button" class="chip" data-value="Alterado">Alterado</button>
+              </div>
+              <div class="alter-box" id="alterSub">
+                <span class="field-label">Descreva a alteração</span>
+                <textarea id="fSubDesc" placeholder="Descreva a alteração encontrada"></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Viatura — Pipa</h2>
+          <p class="card-sub">Níveis atuais dos recursos da viatura</p>
+          <div class="grid3">
+            <div class="range-field">
+              <div class="rf-head"><span class="field-label" style="margin:0;">Água</span><b id="valAgua">100%</b></div>
+              <input type="range" id="fAgua" min="0" max="100" value="100">
+            </div>
+            <div class="range-field">
+              <div class="rf-head"><span class="field-label" style="margin:0;">LPT</span><b id="valLpt">100%</b></div>
+              <input type="range" id="fLpt" min="0" max="100" value="100">
+            </div>
+            <div class="range-field">
+              <div class="rf-head"><span class="field-label" style="margin:0;">Combustível</span><b id="valComb">100%</b></div>
+              <input type="range" id="fComb" min="0" max="100" value="100">
+            </div>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn btn-ghost" id="btnLimpar">Limpar formulário</button>
+          <button type="submit" class="btn btn-primary">Registrar diário</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- ===== VIEW: HISTÓRICO ===== -->
+    <section class="view" id="view-historico">
+      <div class="card">
+        <h2>Diários registrados</h2>
+        <p class="card-sub">Todos os lançamentos ficam disponíveis para consulta e auditoria</p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Data</th><th>Bombeiro</th><th>Equipe</th><th>Condição geral</th>
+                <th>Pendências</th><th>Água</th><th>LPT</th><th>Comb.</th><th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="historicoBody"></tbody>
+          </table>
+        </div>
+        <div id="historicoEmpty" class="empty-state" style="display:none;">
+          <b>Nenhum diário registrado ainda</b>
+          Registre o primeiro diário do turno na aba "Novo diário".
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- MOBILE BOTTOM NAV -->
+<nav class="bottom-nav">
+  <button class="nav-item" data-view="painel">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+    Painel
+  </button>
+  <button class="nav-item" data-view="novo">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+    Novo
+  </button>
+  <button class="nav-item" data-view="historico">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h11"/></svg>
+    Histórico
+  </button>
+</nav>
+
+<div class="toast" id="toast">
+  <span class="tdot"></span>
+  <span id="toastMsg">Diário registrado com sucesso.</span>
+</div>
+
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+<script src="js/theme.js"></script>
+</body>
+</html>

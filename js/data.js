@@ -1,72 +1,76 @@
 // Dados fictícios usados apenas para o protótipo ter contexto na demonstração.
 // Em produção, isso viria do banco de dados via backend.
 
+const BOMBAS = [
+  "370S Jockey", "370S Elétrica", "370S Diesel",
+  "371S Jockey", "371S Elétrica", "371S Diesel",
+  "370R Jockey", "370R Elétrica", "370R Diesel",
+  "370D Jockey", "370D Elétrica", "370D Diesel"
+];
+
+const OPCOES_RESGATE_ANIMAL = ["Jacaré","Gato","Cachorro","Cobra","Iguana","Macaco","Escorpião","Aranha","Pássaro","Preguiça","Outro"];
+const OPCOES_EVENTO_AMBIENTAL = ["Óleo","Licor Cáustico","Combustível","Outro"];
+const OPCOES_INCENDIO = ["Florestal","Veicular","Outro"];
+const OPCOES_DANOS_MATERIAIS = ["Veículos","VEIM","Queda de Objeto"];
+const OPCOES_INSPECAO_MENSAL = [
+  "Áreas remotas","Caixas de mangueiras","F500","Fire alarm","Fire pro","Fm200",
+  "Hidrantes","Fontes radioativa","Novec 1230","Risco ambiental","Risco de explosão",
+  "Riscos e perdas","Sinalização de emergência","Sistemas de bombas","Sprinklers",
+  "Válvulas divisionais","Válvulas do sistemas de bombas"
+];
+
 function isoDateOffset(daysAgo){
   const d = new Date();
   d.setDate(d.getDate() - daysAgo);
   return d.toISOString().slice(0,10);
 }
 
+function gerarId(){
+  return 'seed_' + Math.random().toString(36).slice(2,9);
+}
+
+function rondaCompleta(rti, statusPadrao){
+  const bombas = {};
+  BOMBAS.forEach(b => bombas[b] = statusPadrao);
+  return { rti, bombas, evidenciaNome: "vistoria.jpg", comentario: "Ronda realizada sem intercorrências." };
+}
+
 const MOCK_DIARIOS = [
   {
-    id: 1,
+    id: gerarId(),
     data: isoDateOffset(1),
-    nome: "Raimundo Silva",
-    equipe: "🦁 Leão",
-    condicao: "Normal",
-    bomba: "Automático",
-    alarmeDeteccao: "Normal",
-    hidrantes: "Pressurizada",
-    central: "Normal", centralDesc: "",
-    casa: "Normal", casaDesc: "",
-    area: "Normal", areaDesc: "",
-    sub: "Normal", subDesc: "",
-    agua: 95, lpt: 90, comb: 88
+    nome: "Fernanda Fanilcy Ribeiro Pastor",
+    equipe: "ALPHA",
+    rondas: [
+      rondaCompleta(55, "Automático"),
+      rondaCompleta(50, "Automático"),
+      (function(){ const r = rondaCompleta(48, "Automático"); r.bombas["370R Jockey"] = "Manual"; r.comentario = "Bomba 370R Jockey operando em modo manual, aguardando manutenção."; return r; })()
+    ],
+    dds: { tema: "Uso correto de EPI em áreas classificadas", evidenciaNome: "dds-alpha.jpg" }
   },
   {
-    id: 2,
+    id: gerarId(),
     data: isoDateOffset(2),
-    nome: "João Paulo Costa",
-    equipe: "🐆 Onça",
-    condicao: "Em alerta",
-    bomba: "Manual",
-    alarmeDeteccao: "Normal",
-    hidrantes: "Pressurizada",
-    central: "Alterado", centralDesc: "Sensor da área B apresentou falha intermitente durante o turno.",
-    casa: "Normal", casaDesc: "",
-    area: "Normal", areaDesc: "",
-    sub: "Normal", subDesc: "",
-    agua: 100, lpt: 100, comb: 95
+    nome: "Arnold Feitosa Miranda",
+    equipe: "BRAVO",
+    rondas: [
+      rondaCompleta(60, "Automático"),
+      rondaCompleta(58, "Automático"),
+      rondaCompleta(57, "Automático")
+    ],
+    dds: { tema: "Procedimento de evacuação em emergência", evidenciaNome: "dds-bravo.jpg" }
   },
   {
-    id: 3,
+    id: gerarId(),
     data: isoDateOffset(4),
-    nome: "Fernanda Aragão",
-    equipe: "🦭 Foca",
-    condicao: "Normal",
-    bomba: "Automático",
-    alarmeDeteccao: "Falha / Silenciado",
-    hidrantes: "Pressurizada",
-    central: "Normal", centralDesc: "",
-    casa: "Alterado", casaDesc: "Vazamento leve identificado na válvula de recalque, manutenção acionada.",
-    area: "Normal", areaDesc: "",
-    sub: "Normal", subDesc: "",
-    agua: 100, lpt: 97, comb: 100
-  },
-  {
-    id: 4,
-    data: isoDateOffset(6),
-    nome: "Carlos Menezes",
-    equipe: "🦁 Leão",
-    condicao: "Normal",
-    bomba: "Automático",
-    alarmeDeteccao: "Normal",
-    hidrantes: "Pressurizada",
-    central: "Normal", centralDesc: "",
-    casa: "Normal", casaDesc: "",
-    area: "Normal", areaDesc: "",
-    sub: "Normal", subDesc: "",
-    agua: 100, lpt: 100, comb: 100
+    nome: "George de Jesus Costa Enes",
+    equipe: "CHARLIE",
+    rondas: [
+      rondaCompleta(50, "Automático"),
+      (function(){ const r = rondaCompleta(45, "Automático"); r.bombas["370D Diesel"] = "Inoperante"; r.comentario = "370D Diesel inoperante, manutenção acionada."; return r; })(),
+      rondaCompleta(50, "Automático")
+    ],
+    dds: { tema: "Inspeção visual de mangueiras", evidenciaNome: null }
   }
 ];
 

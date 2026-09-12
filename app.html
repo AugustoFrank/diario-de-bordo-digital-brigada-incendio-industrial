@@ -4,19 +4,18 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Diário de Bordo Digital</title>
-<script>
-(function(){
-  var t = localStorage.getItem('db_theme');
-  document.documentElement.setAttribute('data-theme', t === 'dark' ? 'dark' : 'light');
-})();
-</script>
 <link rel="stylesheet" href="css/style.css">
+<script>
+  (function(){
+    var t = localStorage.getItem('db_theme') || 'light';
+    document.documentElement.setAttribute('data-theme', t);
+  })();
+</script>
 </head>
 <body>
 
 <div class="shell">
 
-  <!-- SIDEBAR -->
   <aside class="sidebar">
     <div class="brand">
       <div class="mark">DB</div>
@@ -51,13 +50,6 @@
     </div>
 
     <div class="sidebar-foot">
-      <div class="theme-row">
-        <span>Tema escuro</span>
-        <button class="theme-toggle" aria-label="Alternar tema escuro" title="Alternar tema">
-          <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
-          <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-        </button>
-      </div>
       <div class="user-chip">
         <div class="avatar" id="avatarInitials">--</div>
         <div class="who">
@@ -66,10 +58,17 @@
         </div>
       </div>
       <a class="logout-link" id="logoutBtn">Sair do sistema</a>
+
+      <button class="theme-toggle" id="themeToggle" type="button">
+        <span style="display:flex;align-items:center;gap:8px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4.5"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4l1.4-1.4M18 6l1.4-1.4"/></svg>
+          Modo escuro
+        </span>
+        <span class="tt-track"><span class="tt-dot"></span></span>
+      </button>
     </div>
   </aside>
 
-  <!-- MOBILE TOPBAR -->
   <div class="mobile-topbar">
     <div class="brand">
       <div class="mark">DB</div>
@@ -78,20 +77,18 @@
         <span>Brigada Industrial</span>
       </div>
     </div>
-    <div class="mobile-topbar-right">
-      <button class="theme-toggle" aria-label="Alternar tema escuro" title="Alternar tema">
-        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
-        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    <div class="mt-actions">
+      <button class="mt-theme-btn" id="themeToggleMobile" type="button" aria-label="Alternar tema">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4.5"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4l1.4-1.4M18 6l1.4-1.4"/></svg>
       </button>
       <div class="avatar" id="avatarInitialsMobile">--</div>
     </div>
   </div>
 
-  <!-- MAIN -->
   <main class="main">
     <div class="status-strip" id="statusStrip">
       <span class="dot"></span>
-      <span id="statusStripText">Condição geral da unidade: Normal</span>
+      <span id="statusStripText">Rondas do turno: 0/3 concluídas</span>
     </div>
 
     <div class="topbar">
@@ -111,17 +108,17 @@
           <div class="kpi-hint">Registros de turno lançados</div>
         </div>
         <div class="kpi">
-          <div class="kpi-label">Alterações em aberto</div>
+          <div class="kpi-label">Bombas fora do automático</div>
           <div class="kpi-value" id="kpiAlteracoes">0</div>
-          <div class="kpi-hint">Itens fora do padrão "Normal"</div>
+          <div class="kpi-hint">No último diário, somando as 3 rondas</div>
         </div>
         <div class="kpi">
-          <div class="kpi-label">Nível médio — pipa</div>
+          <div class="kpi-label">R.T.I médio</div>
           <div class="kpi-value" id="kpiPipa">0%</div>
-          <div class="kpi-hint">Água / LPT / combustível</div>
+          <div class="kpi-hint">Média das rondas do último diário</div>
         </div>
         <div class="kpi">
-          <div class="kpi-label">Última condição</div>
+          <div class="kpi-label">Rondas do turno</div>
           <div class="kpi-value" id="kpiUltima" style="font-size:19px;">—</div>
           <div class="kpi-hint" id="kpiUltimaHint">—</div>
         </div>
@@ -129,19 +126,23 @@
 
       <div class="two-col">
         <div class="card">
-          <h2>Sistemas de proteção — situação atual</h2>
-          <p class="card-sub">Com base no último diário registrado por equipe</p>
+          <h2>Bombas — última ronda registrada</h2>
+          <p class="card-sub">Com base na ronda mais recente do último diário</p>
           <div id="barsWrap"></div>
         </div>
         <div class="card">
           <h2>Pendências abertas</h2>
-          <p class="card-sub">Itens marcados como "Alterado" no último registro</p>
+          <p class="card-sub">Bombas fora do "Automático" no último diário</p>
           <div id="pendingWrap"></div>
         </div>
       </div>
-    </section>
 
-    <!-- ===== VIEW: NOVO DIÁRIO ===== -->
+      <div class="card">
+        <h2>Atividades do mês</h2>
+        <p class="card-sub">Quantos diários do mês tiveram cada módulo preenchido</p>
+        <div class="activity-grid" id="activityWrap"></div>
+      </div>
+    </section>
     <section class="view" id="view-novo">
       <form id="diarioForm">
 
@@ -161,124 +162,439 @@
               <span class="field-label">Equipe</span>
               <select id="fEquipe" required>
                 <option value="" disabled selected>Selecione</option>
-                <option>🦁 Leão</option>
-                <option>🐆 Onça</option>
-                <option>🦭 Foca</option>
               </select>
             </div>
           </div>
         </div>
 
-        <div class="card">
-          <h2>Condições gerais da unidade</h2>
-          <p class="card-sub">Situação atual observada no início do turno</p>
-          <div class="status-toggle" data-group="condicao" data-tones="ok,warn,danger">
-            <button type="button" class="chip" data-value="Normal">Normal</button>
-            <button type="button" class="chip" data-value="Em alerta">Em alerta</button>
-            <button type="button" class="chip" data-value="Emergência em andamento">Emergência em andamento</button>
+        <div class="card" id="rondasProgressoCard">
+          <h2>Rondas do turno</h2>
+          <p class="card-sub">Cada bombeiro fará 3 rondas obrigatórias no seu turno</p>
+          <div class="rondas-progress-row">
+            <div class="bar-track" style="flex:1;height:10px;">
+              <div class="bar-fill" id="rondasProgressoFill" style="width:0%; background:var(--moss-600);"></div>
+            </div>
+            <span class="field-label" style="margin:0;white-space:nowrap;" id="rondasProgressoTexto">0/3 concluídas</span>
+          </div>
+        </div>
+
+        <div class="card ronda-card" id="rondaCard1" data-ronda="1">
+          <div class="ronda-card-head">
+            <div>
+              <h2>1ª Ronda</h2>
+              <p class="card-sub" style="margin-bottom:0;">Verificação do status de cada bomba</p>
+            </div>
+            <span class="ronda-status-badge" id="rondaBadge1">Pendente</span>
+          </div>
+          <div class="range-field" style="margin-bottom:18px;">
+            <div class="rf-head"><span class="field-label" style="margin:0;">Nível da R.T.I</span><b id="valRti1">50%</b></div>
+            <input type="range" id="fRti1" min="0" max="100" value="50">
+          </div>
+          <div class="bomba-grid" id="bombaGrid1"></div>
+          <div class="grid2" style="margin-top:18px;">
+            <div>
+              <span class="field-label">Evidência</span>
+              <label class="upload-box" for="fEvidencia1">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15v3a2 2 0 002 2h12a2 2 0 002-2v-3M12 3v12M7 8l5-5 5 5"/></svg>
+                <span id="fEvidencia1Label">Tirar foto ou anexar da galeria</span>
+              </label>
+              <input type="file" id="fEvidencia1" accept="image/*" capture="environment" style="display:none;">
+            </div>
+            <div>
+              <span class="field-label">Comentário</span>
+              <textarea id="fComentario1" placeholder="Uma breve descrição das rondas realizadas"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="card ronda-card" id="rondaCard2" data-ronda="2">
+          <div class="ronda-card-head">
+            <div>
+              <h2>2ª Ronda</h2>
+              <p class="card-sub" style="margin-bottom:0;">Verificação do status de cada bomba</p>
+            </div>
+            <span class="ronda-status-badge" id="rondaBadge2">Pendente</span>
+          </div>
+          <div class="range-field" style="margin-bottom:18px;">
+            <div class="rf-head"><span class="field-label" style="margin:0;">Nível da R.T.I</span><b id="valRti2">50%</b></div>
+            <input type="range" id="fRti2" min="0" max="100" value="50">
+          </div>
+          <div class="bomba-grid" id="bombaGrid2"></div>
+          <div class="grid2" style="margin-top:18px;">
+            <div>
+              <span class="field-label">Evidência</span>
+              <label class="upload-box" for="fEvidencia2">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15v3a2 2 0 002 2h12a2 2 0 002-2v-3M12 3v12M7 8l5-5 5 5"/></svg>
+                <span id="fEvidencia2Label">Tirar foto ou anexar da galeria</span>
+              </label>
+              <input type="file" id="fEvidencia2" accept="image/*" capture="environment" style="display:none;">
+            </div>
+            <div>
+              <span class="field-label">Comentário</span>
+              <textarea id="fComentario2" placeholder="Uma breve descrição das rondas realizadas"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="card ronda-card" id="rondaCard3" data-ronda="3">
+          <div class="ronda-card-head">
+            <div>
+              <h2>3ª Ronda</h2>
+              <p class="card-sub" style="margin-bottom:0;">Verificação do status de cada bomba</p>
+            </div>
+            <span class="ronda-status-badge" id="rondaBadge3">Pendente</span>
+          </div>
+          <div class="range-field" style="margin-bottom:18px;">
+            <div class="rf-head"><span class="field-label" style="margin:0;">Nível da R.T.I</span><b id="valRti3">50%</b></div>
+            <input type="range" id="fRti3" min="0" max="100" value="50">
+          </div>
+          <div class="bomba-grid" id="bombaGrid3"></div>
+          <div class="grid2" style="margin-top:18px;">
+            <div>
+              <span class="field-label">Evidência</span>
+              <label class="upload-box" for="fEvidencia3">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15v3a2 2 0 002 2h12a2 2 0 002-2v-3M12 3v12M7 8l5-5 5 5"/></svg>
+                <span id="fEvidencia3Label">Tirar foto ou anexar da galeria</span>
+              </label>
+              <input type="file" id="fEvidencia3" accept="image/*" capture="environment" style="display:none;">
+            </div>
+            <div>
+              <span class="field-label">Comentário</span>
+              <textarea id="fComentario3" placeholder="Uma breve descrição das rondas realizadas"></textarea>
+            </div>
           </div>
         </div>
 
         <div class="card">
-          <h2>Sistemas de proteção</h2>
-          <p class="card-sub">Situação de cada sistema fixo de combate a incêndio</p>
-
-          <div style="margin-bottom:16px;">
-            <span class="field-label">Bomba de incêndio</span>
-            <div class="status-toggle" data-group="bomba" data-tones="ok,ok,danger">
-              <button type="button" class="chip" data-value="Automático">Automático</button>
-              <button type="button" class="chip" data-value="Manual">Manual</button>
-              <button type="button" class="chip" data-value="Inoperante">Inoperante</button>
-            </div>
-          </div>
-
-          <div style="margin-bottom:16px;">
-            <span class="field-label">Alarme e detecção</span>
-            <div class="status-toggle" data-group="alarmeDeteccao" data-tones="ok,danger">
-              <button type="button" class="chip" data-value="Normal">Normal</button>
-              <button type="button" class="chip" data-value="Falha / Silenciado">Falha / Silenciado</button>
-            </div>
-          </div>
-
-          <div>
-            <span class="field-label">Rede de hidrantes</span>
-            <div class="status-toggle" data-group="hidrantes" data-tones="ok,danger">
-              <button type="button" class="chip" data-value="Pressurizada">Pressurizada</button>
-              <button type="button" class="chip" data-value="Despressurizada">Despressurizada</button>
-            </div>
-          </div>
-        </div>
-
-        <div class="card">
-          <h2>Verificações da unidade</h2>
-          <p class="card-sub">Quando "Alterado", descreva o que foi encontrado</p>
-
+          <h2>DDS</h2>
+          <p class="card-sub">Registro da participação em Diálogo Diário de Segurança</p>
           <div class="grid2">
-            <div id="blocoCentral">
-              <span class="field-label">Central de alarme</span>
-              <div class="status-toggle" data-group="central" data-tones="ok,warn">
-                <button type="button" class="chip" data-value="Normal">Normal</button>
-                <button type="button" class="chip" data-value="Alterado">Alterado</button>
-              </div>
-              <div class="alter-box" id="alterCentral">
-                <span class="field-label">Descreva a alteração</span>
-                <textarea id="fCentralDesc" placeholder="Ex.: sensor da área X apresentou falha"></textarea>
-              </div>
+            <div>
+              <span class="field-label">Tema</span>
+              <input type="text" id="fDdsTema" placeholder="Tema tratado no DDS">
             </div>
-
-            <div id="blocoCasa">
-              <span class="field-label">Casa de bombas</span>
-              <div class="status-toggle" data-group="casa" data-tones="ok,warn">
-                <button type="button" class="chip" data-value="Normal">Normal</button>
-                <button type="button" class="chip" data-value="Alterado">Alterado</button>
-              </div>
-              <div class="alter-box" id="alterCasa">
-                <span class="field-label">Descreva a alteração</span>
-                <textarea id="fCasaDesc" placeholder="Ex.: vazamento identificado na válvula"></textarea>
-              </div>
-            </div>
-
-            <div id="blocoArea">
-              <span class="field-label">Área de processo</span>
-              <div class="status-toggle" data-group="area" data-tones="ok,warn">
-                <button type="button" class="chip" data-value="Normal">Normal</button>
-                <button type="button" class="chip" data-value="Alterado">Alterado</button>
-              </div>
-              <div class="alter-box" id="alterArea">
-                <span class="field-label">Descreva a alteração</span>
-                <textarea id="fAreaDesc" placeholder="Descreva a alteração encontrada"></textarea>
-              </div>
-            </div>
-
-            <div id="blocoSub">
-              <span class="field-label">Subestações</span>
-              <div class="status-toggle" data-group="sub" data-tones="ok,warn">
-                <button type="button" class="chip" data-value="Normal">Normal</button>
-                <button type="button" class="chip" data-value="Alterado">Alterado</button>
-              </div>
-              <div class="alter-box" id="alterSub">
-                <span class="field-label">Descreva a alteração</span>
-                <textarea id="fSubDesc" placeholder="Descreva a alteração encontrada"></textarea>
-              </div>
+            <div>
+              <span class="field-label">Evidência</span>
+              <label class="upload-box" for="fDdsEvidencia">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15v3a2 2 0 002 2h12a2 2 0 002-2v-3M12 3v12M7 8l5-5 5 5"/></svg>
+                <span id="fDdsEvidenciaLabel">Tirar foto ou anexar da galeria</span>
+              </label>
+              <input type="file" id="fDdsEvidencia" accept="image/*" capture="environment" style="display:none;">
             </div>
           </div>
         </div>
 
         <div class="card">
-          <h2>Viatura — Pipa</h2>
-          <p class="card-sub">Níveis atuais dos recursos da viatura</p>
+          <h2>VTR</h2>
+          <p class="card-sub">Registro das informações da viatura em uso</p>
           <div class="grid3">
-            <div class="range-field">
-              <div class="rf-head"><span class="field-label" style="margin:0;">Água</span><b id="valAgua">100%</b></div>
-              <input type="range" id="fAgua" min="0" max="100" value="100">
+            <div>
+              <span class="field-label">Tag VRT</span>
+              <input type="text" id="fVtrTag" placeholder="Ex.: VRT-01">
             </div>
-            <div class="range-field">
-              <div class="rf-head"><span class="field-label" style="margin:0;">LPT</span><b id="valLpt">100%</b></div>
-              <input type="range" id="fLpt" min="0" max="100" value="100">
+            <div>
+              <span class="field-label">Placa</span>
+              <input type="text" id="fVtrPlaca" placeholder="Ex.: ABC-1234">
             </div>
-            <div class="range-field">
-              <div class="rf-head"><span class="field-label" style="margin:0;">Combustível</span><b id="valComb">100%</b></div>
-              <input type="range" id="fComb" min="0" max="100" value="100">
+            <div>
+              <span class="field-label">Checklist</span>
+              <div class="status-toggle" data-group="vtrChecklist" data-tones="ok,danger">
+                <button type="button" class="chip" data-value="Realizado">Realizado</button>
+                <button type="button" class="chip" data-value="Não Realizado">Não Realizado</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="subsection">
+            <div class="subsection-title">Abastecimento</div>
+            <div class="grid3">
+              <div>
+                <span class="field-label">Abasteceu?</span>
+                <div class="status-toggle" data-group="vtrAbastecimento" data-tones="ok,ok">
+                  <button type="button" class="chip" data-value="Não">Não</button>
+                  <button type="button" class="chip" data-value="Sim">Sim</button>
+                </div>
+              </div>
+              <div id="vtrLitrosWrap" style="display:none;">
+                <span class="field-label">Quantos litros?</span>
+                <input type="number" id="fVtrLitros" min="0" placeholder="0">
+              </div>
+              <div id="vtrLocalWrap" style="display:none;">
+                <span class="field-label">Local onde abasteceu</span>
+                <input type="text" id="fVtrLocal" placeholder="Local do abastecimento">
+              </div>
+            </div>
+          </div>
+
+          <div class="subsection">
+            <span class="field-label">Evidência</span>
+            <label class="upload-box" for="fVtrEvidencia">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15v3a2 2 0 002 2h12a2 2 0 002-2v-3M12 3v12M7 8l5-5 5 5"/></svg>
+              <span id="fVtrEvidenciaLabel">Tirar foto ou anexar da galeria</span>
+            </label>
+            <input type="file" id="fVtrEvidencia" accept="image/*" capture="environment" style="display:none;">
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Emergências</h2>
+          <p class="card-sub">Registro das informações de emergências ocorridas no plantão</p>
+
+          <div class="grid3">
+            <div>
+              <span class="field-label">Horário de chegada</span>
+              <input type="time" id="fEmerChegada">
+            </div>
+            <div>
+              <span class="field-label">Horário de saída</span>
+              <input type="time" id="fEmerSaida">
+            </div>
+            <div>
+              <span class="field-label">Local do ocorrido</span>
+              <input type="text" id="fEmerLocal" placeholder="Local">
+            </div>
+          </div>
+
+          <div class="subsection">
+            <div class="subsection-title">APH</div>
+            <div class="status-toggle" data-group="emerAph" data-tones="warn,danger">
+              <button type="button" class="chip" data-value="Mal-estar">Mal-estar</button>
+              <button type="button" class="chip" data-value="Trauma">Trauma</button>
+            </div>
+            <div class="alter-box" id="emerTraumaBox">
+              <span class="field-label">Qual membro sofreu o trauma?</span>
+              <input type="text" id="fEmerTraumaMembro" placeholder="Ex.: braço direito">
+            </div>
+          </div>
+
+          <div class="subsection">
+            <div class="subsection-title">Resgate animal</div>
+            <div class="grid2">
+              <div>
+                <span class="field-label">Espécie</span>
+                <select id="fEmerResgateAnimal"><option value="">Não aplicável</option></select>
+              </div>
+              <div>
+                <span class="field-label">Situação</span>
+                <div class="status-toggle" data-group="emerResgateStatus" data-tones="ok,warn,danger">
+                  <button type="button" class="chip" data-value="Sem Lesão">Sem Lesão</button>
+                  <button type="button" class="chip" data-value="Com Lesão">Com Lesão</button>
+                  <button type="button" class="chip" data-value="Óbito / Recolhimento">Óbito / Recolhimento</button>
+                </div>
+              </div>
+            </div>
+            <div class="alter-box" id="emerResgateOutroBox">
+              <span class="field-label">Qual espécie?</span>
+              <input type="text" id="fEmerResgateOutro" placeholder="Descreva a espécie">
+            </div>
+          </div>
+
+          <div class="subsection">
+            <div class="grid3">
+              <div>
+                <span class="field-label">Evento ambiental</span>
+                <select id="fEmerEventoAmbiental"><option value="">Não aplicável</option></select>
+              </div>
+              <div>
+                <span class="field-label">Incêndio</span>
+                <select id="fEmerIncendio"><option value="">Não aplicável</option></select>
+              </div>
+              <div>
+                <span class="field-label">Danos materiais</span>
+                <select id="fEmerDanosMateriais"><option value="">Não aplicável</option></select>
+              </div>
+            </div>
+            <div class="alter-box" id="emerEventoOutroBox">
+              <span class="field-label">Qual evento ambiental?</span>
+              <input type="text" id="fEmerEventoOutro">
+            </div>
+            <div class="alter-box" id="emerIncendioOutroBox">
+              <span class="field-label">Qual tipo de incêndio?</span>
+              <input type="text" id="fEmerIncendioOutro">
+            </div>
+          </div>
+
+          <div class="subsection">
+            <span class="field-label">Comentário</span>
+            <textarea id="fEmerComentario" placeholder="Uma breve descrição da emergência registrada"></textarea>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Avaliação</h2>
+          <p class="card-sub">Registro de avaliações solicitadas</p>
+          <div class="status-toggle" id="avaliacaoTipos">
+            <button type="button" class="chip" data-value="Espaço Confinado">Espaço Confinado</button>
+            <button type="button" class="chip" data-value="Trabalho a Quente">Trabalho a Quente</button>
+          </div>
+          <div class="grid2" style="margin-top:18px;">
+            <div>
+              <span class="field-label">Local da avaliação</span>
+              <input type="text" id="fAvaliacaoLocal">
+            </div>
+            <div>
+              <span class="field-label">Status</span>
+              <div class="status-toggle" data-group="avaliacaoStatus" data-tones="ok,warn">
+                <button type="button" class="chip" data-value="Normal">Normal</button>
+                <button type="button" class="chip" data-value="Alterado">Alterado</button>
+              </div>
+            </div>
+          </div>
+          <div class="alter-box" id="avaliacaoAlteradoBox">
+            <span class="field-label">Qual alteração encontrada?</span>
+            <textarea id="fAvaliacaoDesc"></textarea>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Batedor de GLP</h2>
+          <p class="card-sub">Registro de solicitação para batedor de GLP</p>
+          <div class="status-toggle" data-group="glpAcao" data-tones="ok,ok">
+            <button type="button" class="chip" data-value="Entrada">Entrada</button>
+            <button type="button" class="chip" data-value="Saída">Saída</button>
+          </div>
+          <div class="grid3" style="margin-top:18px;">
+            <div>
+              <span class="field-label">Tag VRT</span>
+              <input type="text" id="fGlpTag">
+            </div>
+            <div>
+              <span class="field-label">Início</span>
+              <input type="time" id="fGlpInicio">
+            </div>
+            <div>
+              <span class="field-label">Término</span>
+              <input type="time" id="fGlpTermino">
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Fonte Radioativa</h2>
+          <p class="card-sub">Registro de solicitação para bloqueio/desbloqueio de fonte radioativa</p>
+          <div class="status-toggle" data-group="fonteAcao" data-tones="warn,ok">
+            <button type="button" class="chip" data-value="Bloqueio">Bloqueio</button>
+            <button type="button" class="chip" data-value="Desbloqueio">Desbloqueio</button>
+          </div>
+          <div class="grid3" style="margin-top:18px;">
+            <div>
+              <span class="field-label">Tag da fonte</span>
+              <input type="text" id="fFonteTag">
+            </div>
+            <div>
+              <span class="field-label">Horário</span>
+              <input type="time" id="fFonteHorario">
+            </div>
+            <div>
+              <span class="field-label">Local da fonte</span>
+              <input type="text" id="fFonteLocal">
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Inspeção Mensal</h2>
+          <p class="card-sub">Registro de inspeção realizada pelo bombeiro de acordo com o cronograma mensal</p>
+          <div class="grid3">
+            <div>
+              <span class="field-label">Local</span>
+              <select id="fInspecaoLocal"><option value="">Selecione</option></select>
+            </div>
+            <div>
+              <span class="field-label">Início</span>
+              <input type="time" id="fInspecaoInicio">
+            </div>
+            <div>
+              <span class="field-label">Término</span>
+              <input type="time" id="fInspecaoTermino">
+            </div>
+          </div>
+          <div style="margin-top:18px;">
+            <span class="field-label">Comentário</span>
+            <textarea id="fInspecaoComentario" placeholder="Uma breve descrição da inspeção realizada, se achar necessário"></textarea>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Acompanhamento Trabalho a Quente</h2>
+          <p class="card-sub">Registro de solicitação para acompanhamento de atividades de trabalho a quente</p>
+          <div class="grid2">
+            <div>
+              <span class="field-label">Tag equipamento</span>
+              <input type="text" id="fTaqTag">
+            </div>
+            <div>
+              <span class="field-label">Local</span>
+              <input type="text" id="fTaqLocal">
+            </div>
+            <div>
+              <span class="field-label">Início</span>
+              <input type="time" id="fTaqInicio">
+            </div>
+            <div>
+              <span class="field-label">Término</span>
+              <input type="time" id="fTaqTermino">
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Treinamento</h2>
+          <p class="card-sub">Registro de treinamentos realizados</p>
+          <div class="grid2">
+            <div>
+              <span class="field-label">Tema</span>
+              <input type="text" id="fTreinamentoTema" placeholder="Tema do treinamento">
+            </div>
+            <div>
+              <span class="field-label">Evidência</span>
+              <label class="upload-box" for="fTreinamentoEvidencia">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15v3a2 2 0 002 2h12a2 2 0 002-2v-3M12 3v12M7 8l5-5 5 5"/></svg>
+                <span id="fTreinamentoEvidenciaLabel">Tirar foto ou anexar da galeria</span>
+              </label>
+              <input type="file" id="fTreinamentoEvidencia" accept="image/*" capture="environment" style="display:none;">
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Caminhões de Combate</h2>
+          <p class="card-sub">Status dos caminhões de combate</p>
+
+          <div class="subsection">
+            <div class="subsection-title">ABT</div>
+            <div class="status-toggle" data-group="abtStatus" data-tones="ok,danger">
+              <button type="button" class="chip" data-value="OK">OK</button>
+              <button type="button" class="chip" data-value="Não Conformidade">Não Conformidade</button>
+            </div>
+            <div class="alter-box" id="abtDescBox">
+              <span class="field-label">Qual a não conformidade encontrada?</span>
+              <textarea id="fAbtDesc"></textarea>
+            </div>
+          </div>
+
+          <div class="subsection">
+            <div class="grid2">
+              <div class="range-field">
+                <div class="rf-head"><span class="field-label" style="margin:0;">Nível da água</span><b id="valCcAgua">50%</b></div>
+                <input type="range" id="fCcAgua" min="0" max="100" value="50">
+              </div>
+              <div class="range-field">
+                <div class="rf-head"><span class="field-label" style="margin:0;">Combustível</span><b id="valCcComb">50%</b></div>
+                <input type="range" id="fCcComb" min="0" max="100" value="50">
+              </div>
+            </div>
+          </div>
+
+          <div class="subsection">
+            <div class="subsection-title">AAR</div>
+            <div class="status-toggle" data-group="aarStatus" data-tones="ok,danger">
+              <button type="button" class="chip" data-value="OK">OK</button>
+              <button type="button" class="chip" data-value="Não Conformidade">Não Conformidade</button>
+            </div>
+            <div class="alter-box" id="aarDescBox">
+              <span class="field-label">Qual a não conformidade encontrada?</span>
+              <textarea id="fAarDesc"></textarea>
             </div>
           </div>
         </div>
@@ -299,8 +615,7 @@
           <table>
             <thead>
               <tr>
-                <th>Data</th><th>Bombeiro</th><th>Equipe</th><th>Condição geral</th>
-                <th>Pendências</th><th>Água</th><th>LPT</th><th>Comb.</th><th>Ações</th>
+                <th>Data</th><th>Bombeiro</th><th>Equipe</th><th>Rondas</th><th>R.T.I médio</th><th>Bombas c/ atenção</th><th>Atividades</th><th></th><th></th>
               </tr>
             </thead>
             <tbody id="historicoBody"></tbody>
@@ -316,7 +631,6 @@
   </main>
 </div>
 
-<!-- MOBILE BOTTOM NAV -->
 <nav class="bottom-nav">
   <button class="nav-item" data-view="painel">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
@@ -337,8 +651,19 @@
   <span id="toastMsg">Diário registrado com sucesso.</span>
 </div>
 
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-box">
+    <h3>Excluir este diário?</h3>
+    <p>Essa ação remove o registro permanentemente do histórico. Não é possível desfazer.</p>
+    <div class="confirm-actions">
+      <button class="btn btn-ghost btn-sm" id="confirmCancel" type="button">Cancelar</button>
+      <button class="btn btn-primary btn-sm" id="confirmDelete" type="button">Excluir</button>
+    </div>
+  </div>
+</div>
+
 <script src="js/data.js"></script>
+<script src="js/staff.js"></script>
 <script src="js/app.js"></script>
-<script src="js/theme.js"></script>
 </body>
 </html>

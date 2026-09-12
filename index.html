@@ -4,20 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Diário de Bordo Digital — Acesso</title>
-<script>
-(function(){
-  var t = localStorage.getItem('db_theme');
-  document.documentElement.setAttribute('data-theme', t === 'dark' ? 'dark' : 'light');
-})();
-</script>
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-
-<button class="theme-toggle theme-toggle-login" aria-label="Alternar tema escuro" title="Alternar tema">
-  <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
-  <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-</button>
 
 <div class="login-wrap">
   <div class="login-card">
@@ -34,14 +23,16 @@
 
     <form id="loginForm">
       <div class="field">
+        <label for="equipe">Equipe / empresa</label>
+        <select id="equipe" required>
+          <option value="" disabled selected>Selecione a equipe</option>
+        </select>
+      </div>
+
+      <div class="field" id="campoBombeiro" style="display:none;">
         <label for="bombeiro">Bombeiro</label>
         <select id="bombeiro" required>
-          <option value="" disabled selected>Selecione seu nome</option>
-          <option>Carlos Menezes</option>
-          <option>Raimundo Silva</option>
-          <option>João Paulo Costa</option>
-          <option>Fernanda Aragão</option>
-          <option>Marcos Vinícius Ramos</option>
+          <option value="" disabled selected>Selecione o bombeiro</option>
         </select>
       </div>
 
@@ -60,16 +51,33 @@
   </div>
 </div>
 
+<script src="js/staff.js"></script>
 <script>
+const equipeSelect = document.getElementById('equipe');
+const bombeiroSelect = document.getElementById('bombeiro');
+const campoBombeiro = document.getElementById('campoBombeiro');
+
+popularSelectEquipes(equipeSelect);
+
+equipeSelect.addEventListener('change', ()=>{
+  popularSelectBombeirosPorEmpresa(bombeiroSelect, equipeSelect.value);
+  campoBombeiro.style.display = 'block';
+});
+
 document.getElementById('loginForm').addEventListener('submit', function(e){
   e.preventDefault();
-  const nome = document.getElementById('bombeiro').value;
+  const nome = bombeiroSelect.value;
   if(!nome) return;
+  const staff = buscarStaff(nome);
   sessionStorage.setItem('db_usuario', nome);
+  sessionStorage.setItem('db_usuario_label', nomeParaLabel(nome));
+  if(staff){
+    sessionStorage.setItem('db_usuario_empresa', staff.empresa);
+    sessionStorage.setItem('db_usuario_funcao', staff.funcao);
+  }
   window.location.href = 'app.html';
 });
 </script>
-<script src="js/theme.js"></script>
 
 </body>
 </html>

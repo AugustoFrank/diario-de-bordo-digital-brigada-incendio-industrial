@@ -461,3 +461,42 @@ tbody tr:hover{background:var(--recessed);}
 .subsection{margin-top:20px;padding-top:20px;border-top:1px solid var(--border);}
 .subsection:first-child{margin-top:0;padding-top:0;border-top:none;}
 .subsection-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:12px;}
+
+/* ===== HISTÓRICO EXPANDIDO ===== */
+.mod-chip{
+  display:inline-flex;align-items:center;padding:3px 9px;border-radius:14px;
+  font-size:10.5px;font-weight:700;letter-spacing:.02em;margin:2px 3px 2px 0;
+  background:var(--recessed);color:var(--text-muted);
+}
+.mod-chip.mod-alert{background:var(--tint-ember-bg);color:var(--tint-ember-text);}
+
+.expand-toggle{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:30px;height:30px;border-radius:8px;border:1.5px solid var(--border);
+  background:var(--surface);color:var(--text-muted);cursor:pointer;transition:all .12s;
+}
+.expand-toggle:hover{border-color:var(--ash-700);color:var(--text);}
+.expand-toggle svg{width:15px;height:15px;transition:transform .15s;}
+.expand-toggle.open svg{transform:rotate(180deg);}
+
+.detail-row{display:none;}
+.detail-row.show{display:table-row;}
+.detail-row td{padding:0;border-bottom:1px solid var(--border);}
+.detail-wrap{padding:20px 16px;background:var(--recessed);white-space:normal;}
+.detail-grid{display:grid;grid-template-columns:repeat(auto-fill, minmax(230px, 1fr));gap:16px;}
+.detail-mod{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:13px 14px;}
+.detail-mod h4{margin:0 0 8px;font-size:12.5px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.02em;}
+.detail-mod .dm-row{font-size:12.5px;color:var(--text);margin-bottom:4px;line-height:1.4;}
+.detail-mod .dm-row b{color:var(--text-muted);font-weight:600;}
+.detail-empty{color:var(--text-muted);font-size:12.5px;font-style:italic;padding:6px 2px;}
+
+/* ===== ATIVIDADES DO MÊS (painel) ===== */
+.activity-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px 20px;}
+@media (max-width:560px){.activity-grid{grid-template-columns:1fr;}}
+.activity-row{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:12px 2px;border-bottom:1px solid var(--border);font-size:13.5px;
+}
+.activity-grid .activity-row:nth-last-child(-n+2){border-bottom:none;}
+@media (max-width:560px){.activity-grid .activity-row:last-child{border-bottom:none;}.activity-grid .activity-row:nth-last-child(-n+2){border-bottom:1px solid var(--border);}}
+.activity-row .ar-count{font-family:'Poppins';font-weight:600;color:var(--text);}

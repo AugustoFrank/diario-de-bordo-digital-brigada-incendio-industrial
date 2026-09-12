@@ -535,7 +535,15 @@ function renderPainel(){
 
     const pendingWrap = document.getElementById('pendingWrap');
     pendingWrap.innerHTML = '';
-    if(foraDoAuto.length){
+    const extras = [];
+    if(ultimo.caminhoesCombate){
+      if(ultimo.caminhoesCombate.abt === 'Não Conformidade') extras.push(['Caminhão ABT — Não Conformidade', ultimo.caminhoesCombate.abtDesc || 'Sem descrição informada']);
+      if(ultimo.caminhoesCombate.aar === 'Não Conformidade') extras.push(['Caminhão AAR — Não Conformidade', ultimo.caminhoesCombate.aarDesc || 'Sem descrição informada']);
+    }
+    if(ultimo.avaliacao && ultimo.avaliacao.status === 'Alterado'){
+      extras.push(['Avaliação alterada — ' + (ultimo.avaliacao.local || 'local não informado'), ultimo.avaliacao.desc || 'Sem descrição informada']);
+    }
+    if(foraDoAuto.length || extras.length){
       foraDoAuto.forEach(item=>{
         pendingWrap.insertAdjacentHTML('beforeend', `
           <div class="pending-item">
@@ -543,6 +551,17 @@ function renderPainel(){
             <div>
               <div class="pi-title">Bomba ${item.bomba} — ${item.status}</div>
               <div class="pi-sub">Identificado na ${item.ronda}ª ronda</div>
+            </div>
+          </div>
+        `);
+      });
+      extras.forEach(([titulo, sub])=>{
+        pendingWrap.insertAdjacentHTML('beforeend', `
+          <div class="pending-item">
+            <div class="pending-dot"></div>
+            <div>
+              <div class="pi-title">${titulo}</div>
+              <div class="pi-sub">${sub}</div>
             </div>
           </div>
         `);
@@ -558,6 +577,133 @@ function renderPainel(){
     document.getElementById('barsWrap').innerHTML = '<p style="color:var(--text-muted);font-size:13.5px;">Nenhum diário registrado ainda.</p>';
     document.getElementById('pendingWrap').innerHTML = '<p style="color:var(--text-muted);font-size:13.5px;">Nenhuma pendência no último registro.</p>';
   }
+
+  const activityWrap = document.getElementById('activityWrap');
+  activityWrap.innerHTML = MODULOS_INFO.map(m=>{
+    const count = doMes.filter(d => m.tem(d)).length;
+    return `
+      <div class="activity-row">
+        <span>${m.label}</span>
+        <span class="ar-count">${count}</span>
+      </div>`;
+  }).join('');
+}
+
+// ===== MÓDULOS: metadados p/ Histórico e Painel =====
+const MODULOS_INFO = [
+  { key:'dds', label:'DDS',
+    tem: d => !!(d.dds && d.dds.tema),
+    alerta: () => false,
+    detalhe: d => d.dds ? [['Tema', d.dds.tema || '—'], ['Evidência', d.dds.evidenciaNome || '—']] : null
+  },
+  { key:'vtr', label:'VTR',
+    tem: d => !!(d.vtr && (d.vtr.tag || d.vtr.placa || d.vtr.checklist)),
+    alerta: d => d.vtr && d.vtr.checklist === 'Não Realizado',
+    detalhe: d => {
+      if(!d.vtr) return null;
+      const rows = [['Tag', d.vtr.tag || '—'], ['Placa', d.vtr.placa || '—'], ['Checklist', d.vtr.checklist || '—'], ['Abastecimento', d.vtr.abastecimento || '—']];
+      if(d.vtr.abastecimento === 'Sim'){ rows.push(['Litros', d.vtr.litros || '—']); rows.push(['Local abastec.', d.vtr.local || '—']); }
+      return rows;
+    }
+  },
+  { key:'emergencia', label:'Emergência',
+    tem: d => !!(d.emergencia && (d.emergencia.local || d.emergencia.aph || d.emergencia.resgateAnimal || d.emergencia.eventoAmbiental || d.emergencia.incendio || d.emergencia.danosMateriais)),
+    alerta: () => true,
+    detalhe: d => {
+      if(!d.emergencia) return null;
+      const e = d.emergencia;
+      const rows = [['Chegada', e.chegada || '—'], ['Saída', e.saida || '—'], ['Local', e.local || '—'], ['APH', e.aph || '—']];
+      if(e.aph === 'Trauma') rows.push(['Membro', e.traumaMembro || '—']);
+      if(e.resgateAnimal) rows.push(['Resgate animal', (e.resgateAnimal === 'Outro' ? e.resgateAnimalOutro : e.resgateAnimal) + (e.resgateStatus ? ' — ' + e.resgateStatus : '')]);
+      if(e.eventoAmbiental) rows.push(['Evento ambiental', e.eventoAmbiental === 'Outro' ? e.eventoAmbientalOutro : e.eventoAmbiental]);
+      if(e.incendio) rows.push(['Incêndio', e.incendio === 'Outro' ? e.incendioOutro : e.incendio]);
+      if(e.danosMateriais) rows.push(['Danos materiais', e.danosMateriais]);
+      if(e.comentario) rows.push(['Comentário', e.comentario]);
+      return rows;
+    }
+  },
+  { key:'avaliacao', label:'Avaliação',
+    tem: d => !!(d.avaliacao && ((d.avaliacao.tipos && d.avaliacao.tipos.length) || d.avaliacao.local)),
+    alerta: d => d.avaliacao && d.avaliacao.status === 'Alterado',
+    detalhe: d => {
+      if(!d.avaliacao) return null;
+      const rows = [
+        ['Tipo', (d.avaliacao.tipos && d.avaliacao.tipos.length) ? d.avaliacao.tipos.join(', ') : '—'],
+        ['Local', d.avaliacao.local || '—'],
+        ['Status', d.avaliacao.status || '—']
+      ];
+      if(d.avaliacao.status === 'Alterado') rows.push(['Alteração', d.avaliacao.desc || '—']);
+      return rows;
+    }
+  },
+  { key:'glp', label:'Batedor GLP',
+    tem: d => !!(d.glp && d.glp.acao),
+    alerta: () => false,
+    detalhe: d => d.glp ? [['Ação', d.glp.acao || '—'], ['Tag VRT', d.glp.tag || '—'], ['Início', d.glp.inicio || '—'], ['Término', d.glp.termino || '—']] : null
+  },
+  { key:'fonteRadioativa', label:'Fonte Radioativa',
+    tem: d => !!(d.fonteRadioativa && d.fonteRadioativa.acao),
+    alerta: d => d.fonteRadioativa && d.fonteRadioativa.acao === 'Bloqueio',
+    detalhe: d => d.fonteRadioativa ? [['Ação', d.fonteRadioativa.acao || '—'], ['Tag', d.fonteRadioativa.tag || '—'], ['Horário', d.fonteRadioativa.horario || '—'], ['Local', d.fonteRadioativa.local || '—']] : null
+  },
+  { key:'inspecaoMensal', label:'Inspeção Mensal',
+    tem: d => !!(d.inspecaoMensal && d.inspecaoMensal.local),
+    alerta: () => false,
+    detalhe: d => d.inspecaoMensal ? [['Local', d.inspecaoMensal.local || '—'], ['Início', d.inspecaoMensal.inicio || '—'], ['Término', d.inspecaoMensal.termino || '—'], ['Comentário', d.inspecaoMensal.comentario || '—']] : null
+  },
+  { key:'trabalhoQuente', label:'Trab. a Quente',
+    tem: d => !!(d.trabalhoQuente && (d.trabalhoQuente.tag || d.trabalhoQuente.local)),
+    alerta: () => false,
+    detalhe: d => d.trabalhoQuente ? [['Tag equipamento', d.trabalhoQuente.tag || '—'], ['Local', d.trabalhoQuente.local || '—'], ['Início', d.trabalhoQuente.inicio || '—'], ['Término', d.trabalhoQuente.termino || '—']] : null
+  },
+  { key:'treinamento', label:'Treinamento',
+    tem: d => !!(d.treinamento && d.treinamento.tema),
+    alerta: () => false,
+    detalhe: d => d.treinamento ? [['Tema', d.treinamento.tema || '—'], ['Evidência', d.treinamento.evidenciaNome || '—']] : null
+  },
+  { key:'caminhoesCombate', label:'Caminhões',
+    tem: d => !!(d.caminhoesCombate && (d.caminhoesCombate.abt || d.caminhoesCombate.aar)),
+    alerta: d => d.caminhoesCombate && (d.caminhoesCombate.abt === 'Não Conformidade' || d.caminhoesCombate.aar === 'Não Conformidade'),
+    detalhe: d => {
+      if(!d.caminhoesCombate) return null;
+      const c = d.caminhoesCombate;
+      const rows = [['ABT', c.abt || '—']];
+      if(c.abt === 'Não Conformidade') rows.push(['N. conformidade (ABT)', c.abtDesc || '—']);
+      rows.push(['Água', c.agua != null ? c.agua + '%' : '—']);
+      rows.push(['Combustível', c.combustivel != null ? c.combustivel + '%' : '—']);
+      rows.push(['AAR', c.aar || '—']);
+      if(c.aar === 'Não Conformidade') rows.push(['N. conformidade (AAR)', c.aarDesc || '—']);
+      return rows;
+    }
+  }
+];
+
+function rondasDetalhe(d){
+  return d.rondas.map((r,i)=>{
+    const bombasAlteradas = BOMBAS.filter(b => r.bombas[b] && r.bombas[b] !== 'Automático');
+    const linhas = [['R.T.I', r.rti != null ? r.rti + '%' : '—']];
+    linhas.push(['Bombas alteradas', bombasAlteradas.length ? bombasAlteradas.map(b => b + ' (' + r.bombas[b] + ')').join(', ') : 'Nenhuma']);
+    if(r.comentario) linhas.push(['Comentário', r.comentario]);
+    return { titulo: (i+1) + 'ª Ronda', linhas };
+  });
+}
+
+function renderDetailGrid(d){
+  let html = '';
+  rondasDetalhe(d).forEach(r=>{
+    html += `<div class="detail-mod"><h4>${r.titulo}</h4>` +
+      r.linhas.map(([k,v]) => `<div class="dm-row"><b>${k}:</b> ${v}</div>`).join('') +
+      `</div>`;
+  });
+  MODULOS_INFO.forEach(m=>{
+    if(m.tem(d)){
+      const linhas = m.detalhe(d) || [];
+      html += `<div class="detail-mod"><h4>${m.label}</h4>` +
+        linhas.map(([k,v]) => `<div class="dm-row"><b>${k}:</b> ${v}</div>`).join('') +
+        `</div>`;
+    }
+  });
+  return html;
 }
 
 // ===== HISTÓRICO =====
@@ -583,6 +729,11 @@ function renderHistorico(){
       ? `<span class="badge badge-warn">${foraDoAuto.length}</span>`
       : `<span class="badge badge-ok">0</span>`;
 
+    const modsPresentes = MODULOS_INFO.filter(m => m.tem(d));
+    const modChips = modsPresentes.length
+      ? modsPresentes.map(m => `<span class="mod-chip ${m.alerta(d) ? 'mod-alert' : ''}">${m.label}</span>`).join('')
+      : '<span style="color:var(--text-muted);font-size:12px;">—</span>';
+
     body.insertAdjacentHTML('beforeend', `
       <tr data-id="${d.id}">
         <td>${formatDateBR(d.data)}</td>
@@ -591,10 +742,23 @@ function renderHistorico(){
         <td><span class="badge ${rondasBadgeClass}">${concluidas}/3</span></td>
         <td>${mediaRti}%</td>
         <td>${atencaoBadge}</td>
+        <td>${modChips}</td>
+        <td>
+          <button class="expand-toggle" data-expand-id="${d.id}" type="button" aria-label="Ver detalhes">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+        </td>
         <td>
           <button class="row-delete" data-delete-id="${d.id}" type="button" aria-label="Excluir diário">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2m-8 0l1 12a1 1 0 001 1h6a1 1 0 001-1l1-12"/></svg>
           </button>
+        </td>
+      </tr>
+      <tr class="detail-row" id="detailRow_${d.id}">
+        <td colspan="9">
+          <div class="detail-wrap">
+            <div class="detail-grid">${renderDetailGrid(d)}</div>
+          </div>
         </td>
       </tr>
     `);
@@ -602,6 +766,13 @@ function renderHistorico(){
 
   body.querySelectorAll('[data-delete-id]').forEach(btn=>{
     btn.addEventListener('click', ()=> abrirConfirmacaoExclusao(btn.dataset.deleteId));
+  });
+  body.querySelectorAll('[data-expand-id]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const row = document.getElementById('detailRow_' + btn.dataset.expandId);
+      const aberto = row.classList.toggle('show');
+      btn.classList.toggle('open', aberto);
+    });
   });
 }
 

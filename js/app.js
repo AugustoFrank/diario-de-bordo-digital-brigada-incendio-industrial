@@ -784,7 +784,7 @@ function showToast(msg, isError){
 // ===== HELPERS DE DADOS (rondas — usados no Painel/Histórico) =====
 function bombasForaDoAutomatico(diario){
   const achados = [];
-  diario.rondas.forEach((ronda, i)=>{
+  (diario.rondas || []).forEach((ronda, i)=>{
     BOMBAS.forEach(b=>{
       if(ronda.bombas[b] && ronda.bombas[b] !== 'Automático'){
         achados.push({ bomba: b, status: ronda.bombas[b], ronda: i+1 });
@@ -794,13 +794,14 @@ function bombasForaDoAutomatico(diario){
   return achados;
 }
 function ultimaRondaPreenchida(diario){
-  for(let i = diario.rondas.length - 1; i >= 0; i--){
-    if(BOMBAS.some(b => diario.rondas[i].bombas[b])) return diario.rondas[i];
+  const rondas = diario.rondas || [];
+  for(let i = rondas.length - 1; i >= 0; i--){
+    if(BOMBAS.some(b => rondas[i].bombas && rondas[i].bombas[b])) return rondas[i];
   }
-  return diario.rondas[diario.rondas.length - 1];
+  return rondas[rondas.length - 1] || { bombas:{} };
 }
 function rondasConcluidasDoDiario(diario){
-  return diario.rondas.filter(r => BOMBAS.every(b => r.bombas[b])).length;
+  return (diario.rondas || []).filter(r => r.bombas && BOMBAS.every(b => r.bombas[b])).length;
 }
 
 // ===== PAINEL =====
@@ -817,7 +818,7 @@ function renderPainel(){
     const foraDoAuto = bombasForaDoAutomatico(ultimo);
     document.getElementById('kpiAlteracoes').textContent = foraDoAuto.length;
 
-    const rtis = ultimo.rondas.map(r => r.rti).filter(v => typeof v === 'number');
+    const rtis = (ultimo.rondas || []).map(r => r.rti).filter(v => typeof v === 'number');
     const mediaRti = rtis.length ? Math.round(rtis.reduce((a,b)=>a+b,0)/rtis.length) : 0;
     document.getElementById('kpiPipa').textContent = mediaRti + '%';
 
@@ -986,8 +987,8 @@ const MODULOS_INFO = [
 ];
 
 function rondasDetalhe(d){
-  return d.rondas.map((r,i)=>{
-    const bombasAlteradas = BOMBAS.filter(b => r.bombas[b] && r.bombas[b] !== 'Automático');
+  return (d.rondas || []).map((r,i)=>{
+    const bombasAlteradas = BOMBAS.filter(b => r.bombas && r.bombas[b] && r.bombas[b] !== 'Automático');
     const linhas = [['R.T.I', r.rti != null ? r.rti + '%' : '—']];
     linhas.push(['Bombas alteradas', bombasAlteradas.length ? bombasAlteradas.map(b => b + ' (' + r.bombas[b] + ')').join(', ') : 'Nenhuma']);
     if(r.comentario) linhas.push(['Comentário', r.comentario]);
@@ -1029,7 +1030,7 @@ function renderHistorico(){
   diarios.forEach(d=>{
     const concluidas = rondasConcluidasDoDiario(d);
     const rondasBadgeClass = concluidas === 3 ? 'badge-ok' : (concluidas > 0 ? 'badge-warn' : 'badge-danger');
-    const rtis = d.rondas.map(r => r.rti).filter(v => typeof v === 'number');
+    const rtis = (d.rondas || []).map(r => r.rti).filter(v => typeof v === 'number');
     const mediaRti = rtis.length ? Math.round(rtis.reduce((a,b)=>a+b,0)/rtis.length) : 0;
     const foraDoAuto = bombasForaDoAutomatico(d);
     const atencaoBadge = foraDoAuto.length > 0

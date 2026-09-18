@@ -21,6 +21,100 @@ document.getElementById('logoutBtn').addEventListener('click', ()=>{
 
 seedMockDataIfEmpty();
 
+// ===== ETAPA 1: SALVAMENTO PROGRESSIVO — diário do dia =====
+function hojeISO(){
+  return new Date().toISOString().slice(0,10);
+}
+
+let diarioAtualId = null; // id do diário de hoje deste bombeiro (após a 1ª gravação)
+
+function buscarDiarioHoje(){
+  const diarios = JSON.parse(localStorage.getItem('db_diarios') || '[]');
+  return diarios.find(d => d.data === hojeISO() && d.nome === usuarioLabel) || null;
+}
+
+function diarioVazio(dataISO){
+  return {
+    id: 'd_' + Date.now() + '_' + Math.random().toString(36).slice(2,7),
+    data: dataISO || hojeISO(),
+    nome: usuarioLabel,
+    equipe: '',
+    status: 'rascunho',
+    _timestamps: {},
+    rondas: [estadoRondaVazio(), estadoRondaVazio(), estadoRondaVazio()],
+    dds: null, vtr: null, emergencia: null, avaliacao: null, glp: null,
+    fonteRadioativa: null, inspecaoMensal: null, trabalhoQuente: null,
+    treinamento: null, caminhoesCombate: null
+  };
+}
+
+function salvarDiarioNoStorage(diario){
+  const diarios = JSON.parse(localStorage.getItem('db_diarios') || '[]');
+  const idx = diarios.findIndex(d => d.id === diario.id);
+  if(idx > -1) diarios[idx] = diario;
+  else diarios.unshift(diario);
+  localStorage.setItem('db_diarios', JSON.stringify(diarios));
+}
+
+// Garante que existe um diário de hoje no storage (cria se ainda não existir)
+// e devolve o objeto atualizado.
+function garantirDiarioHoje(){
+  if(diarioAtualId){
+    const diarios = JSON.parse(localStorage.getItem('db_diarios') || '[]');
+    const existente = diarios.find(d => d.id === diarioAtualId);
+    if(existente) return existente;
+  }
+  let diario = buscarDiarioHoje();
+  if(!diario){
+    diario = diarioVazio();
+    salvarDiarioNoStorage(diario);
+  }
+  diarioAtualId = diario.id;
+  return diario;
+}
+
+// ===== ETAPA 2: BLOQUEIO POR DATA (Rondas/DDS retroativos em até 24h) =====
+
+function buscarDiarioPorData(dataISO){
+  const diarios = JSON.parse(localStorage.getItem('db_diarios') || '[]');
+  return diarios.find(d => d.data === dataISO && d.nome === usuarioLabel) || null;
+}
+
+function dataOntemISO(){
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return d.toISOString().slice(0,10);
+}
+
+// Qual data o formulário de "Novo diário" está representando agora.
+// 'hoje' na maior parte do tempo; vira a data de ontem quando o bombeiro
+// entra no modo de completar Rondas/DDS pendentes do turno anterior.
+let dataEmEdicao = hojeISO();
+
+function garantirDiarioData(dataISO){
+  if(diarioAtualId){
+    const diarios = JSON.parse(localStorage.getItem('db_diarios') || '[]');
+    const existente = diarios.find(d => d.id === diarioAtualId && d.data === dataISO);
+    if(existente) return existente;
+  }
+  let diario = buscarDiarioPorData(dataISO);
+  if(!diario){
+    diario = diarioVazio(dataISO);
+    salvarDiarioNoStorage(diario);
+  }
+  diarioAtualId = diario.id;
+  return diario;
+}
+
+// Um diário está "pendente" quando as 3 rondas não estão completas
+// ou o DDS ainda não foi salvo nenhuma vez.
+function diarioPendente(diario){
+  if(!diario) return false;
+  const rondasCompletas = rondasConcluidasDoDiario(diario) === 3;
+  const ddsSalvo = !!(diario._timestamps && diario._timestamps.dds);
+  return !(rondasCompletas && ddsSalvo);
+}
+
 // ===== TEMA CLARO/ESCURO =====
 function applyTheme(theme){
   document.documentElement.setAttribute('data-theme', theme);
@@ -33,14 +127,14 @@ function toggleTheme(){
 document.getElementById('themeToggle').addEventListener('click', toggleTheme);
 document.getElementById('themeToggleMobile').addEventListener('click', toggleTheme);
 
-// ===== DATA: hoje / limite de 10 dias =====
+// ===== DATA: sempre hoje (Novo diário só existe para o dia atual) =====
 const hoje = new Date();
-const limite = new Date();
-limite.setDate(hoje.getDate() - 10);
+const hojeStr = hoje.toISOString().slice(0,10);
 const fData = document.getElementById('fData');
-fData.min = limite.toISOString().slice(0,10);
-fData.max = hoje.toISOString().slice(0,10);
-fData.value = hoje.toISOString().slice(0,10);
+fData.min = hojeStr;
+fData.max = hojeStr;
+fData.value = hojeStr;
+fData.addEventListener('change', ()=>{ fData.value = hojeStr; });
 
 document.getElementById('topDate').textContent = hoje.toLocaleDateString('pt-BR', {
   weekday:'long', day:'2-digit', month:'long'
@@ -97,7 +191,12 @@ function renderBombaGrid(rondaIndex){
     wrap.appendChild(row);
     const group = row.querySelector('.status-toggle');
     const tones = ['ok','warn','danger'];
+    const valorAtual = rondasState[rondaIndex-1].bombas[nomeBomba];
     group.querySelectorAll('.chip').forEach((chip,i)=>{
+      if(chip.dataset.value === valorAtual){
+        chip.classList.add('selected');
+        chip.setAttribute('data-tone', tones[i]);
+      }
       chip.addEventListener('click', ()=>{
         group.querySelectorAll('.chip').forEach(c=>{ c.classList.remove('selected'); c.removeAttribute('data-tone'); });
         chip.classList.add('selected');
@@ -335,6 +434,7 @@ function goTo(view){
   document.getElementById('pageSubtitle').textContent = titles[view][1];
   if(view === 'painel') renderPainel();
   if(view === 'historico') renderHistorico();
+  if(view === 'novo') carregarDiarioAtual();
 }
 document.querySelectorAll('.nav-item[data-view]').forEach(btn=>{
   btn.addEventListener('click', ()=> goTo(btn.dataset.view));
@@ -412,23 +512,77 @@ function resetForm(){
   caminhoesState = { abt:null, abtDesc:'', agua:50, combustivel:50, aar:null, aarDesc:'' };
 }
 
-// ===== SUBMIT =====
-document.getElementById('diarioForm').addEventListener('submit', function(e){
-  e.preventDefault();
+// ===== ETAPA 1: HELPERS DE UI PARA CARREGAR/SALVAR MÓDULOS =====
 
-  const equipe = fEquipe.value;
-  if(!equipe){
-    showToast('Selecione a equipe antes de registrar.', true);
-    return;
-  }
+function timestampAgora(){
+  return new Date().toISOString();
+}
 
-  const concluidas = atualizarProgressoRondas();
-  if(concluidas < 3){
-    showToast('As 3 rondas do turno são obrigatórias antes de registrar o diário.', true);
-    return;
-  }
+function formatarHoraCurta(iso){
+  if(!iso) return null;
+  return new Date(iso).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+}
 
-  // sincroniza os grupos de chip nos objetos de estado antes de salvar
+function atualizarBadgeStatusDiario(diario){
+  const badge = document.getElementById('diarioStatusBadge');
+  if(!badge) return;
+  const concluido = diario.status === 'concluido';
+  badge.textContent = concluido ? 'Concluído' : 'Rascunho';
+  badge.classList.toggle('badge-ok', concluido);
+  badge.classList.toggle('badge-warn', !concluido);
+}
+
+function atualizarTextoSalvo(modulo, iso){
+  const span = document.getElementById('saveStatus_' + modulo);
+  if(!span) return;
+  span.textContent = iso ? ('Salvo hoje às ' + formatarHoraCurta(iso)) : 'Ainda não salvo hoje';
+}
+
+function definirChipGroup(nomeGrupo, valor){
+  const group = document.querySelector('.status-toggle[data-group="'+nomeGrupo+'"]');
+  if(!group) return;
+  const tones = (group.dataset.tones || '').split(',');
+  group.querySelectorAll('.chip').forEach((chip,i)=>{
+    chip.classList.remove('selected');
+    chip.removeAttribute('data-tone');
+    if(valor && chip.dataset.value === valor){
+      chip.classList.add('selected');
+      if(tones[i]) chip.setAttribute('data-tone', tones[i]);
+    }
+  });
+  chipGroupState[nomeGrupo] = valor || null;
+  onGroupChange(nomeGrupo, valor || null);
+}
+
+function definirAvaliacaoTipos(lista){
+  avaliacaoTiposState.length = 0;
+  document.querySelectorAll('#avaliacaoTipos .chip').forEach(chip=>{
+    const v = chip.dataset.value;
+    const marcado = (lista || []).includes(v);
+    chip.classList.toggle('selected', marcado);
+    if(marcado) avaliacaoTiposState.push(v);
+  });
+}
+
+function preencherTextoOuVazio(id, valor){
+  const el = document.getElementById(id);
+  if(el) el.value = (valor === null || valor === undefined) ? '' : valor;
+}
+
+function preencherRondasNaTela(){
+  [1,2,3].forEach(i=>{
+    const estado = rondasState[i-1];
+    document.getElementById('fRti' + i).value = estado.rti;
+    document.getElementById('valRti' + i).textContent = estado.rti + '%';
+    document.getElementById('fComentario' + i).value = estado.comentario || '';
+    document.getElementById('fEvidencia' + i + 'Label').textContent = estado.evidenciaNome || 'Tirar foto ou anexar da galeria';
+    renderBombaGrid(i);
+  });
+  atualizarProgressoRondas();
+}
+
+// Sincroniza os grupos de chip (exclusivos) nos objetos de estado de cada módulo
+function sincronizarChipsNoEstado(){
   vtrState.checklist = chipGroupState.vtrChecklist;
   vtrState.abastecimento = chipGroupState.vtrAbastecimento;
   emergenciaState.aph = chipGroupState.emerAph;
@@ -438,33 +592,186 @@ document.getElementById('diarioForm').addEventListener('submit', function(e){
   fonteState.acao = chipGroupState.fonteAcao;
   caminhoesState.abt = chipGroupState.abtStatus;
   caminhoesState.aar = chipGroupState.aarStatus;
+}
 
-  const registro = {
-    id: 'd_' + Date.now() + '_' + Math.random().toString(36).slice(2,7),
-    data: fData.value,
-    nome: usuarioLabel,
-    equipe,
-    rondas: JSON.parse(JSON.stringify(rondasState)),
-    dds: JSON.parse(JSON.stringify(ddsState)),
-    vtr: JSON.parse(JSON.stringify(vtrState)),
-    emergencia: JSON.parse(JSON.stringify(emergenciaState)),
-    avaliacao: { tipos: avaliacaoTiposState.slice(), ...JSON.parse(JSON.stringify(avaliacaoState)) },
-    glp: JSON.parse(JSON.stringify(glpState)),
-    fonteRadioativa: JSON.parse(JSON.stringify(fonteState)),
-    inspecaoMensal: JSON.parse(JSON.stringify(inspecaoState)),
-    trabalhoQuente: JSON.parse(JSON.stringify(taqState)),
-    treinamento: JSON.parse(JSON.stringify(treinamentoState)),
-    caminhoesCombate: JSON.parse(JSON.stringify(caminhoesState))
-  };
+// ===== SALVAR UM MÓDULO ISOLADO NO DIÁRIO DE HOJE =====
+function salvarModulo(modulo){
+  const equipe = fEquipe.value;
+  if(!equipe){
+    showToast('Selecione a equipe antes de salvar.', true);
+    return;
+  }
 
-  const diarios = JSON.parse(localStorage.getItem('db_diarios') || '[]');
-  diarios.unshift(registro);
-  localStorage.setItem('db_diarios', JSON.stringify(diarios));
+  sincronizarChipsNoEstado();
 
-  showToast('Diário registrado com sucesso.');
-  resetForm();
-  setTimeout(()=> goTo('historico'), 500);
+  const diario = garantirDiarioHoje();
+  diario.equipe = equipe;
+
+  if(modulo === 'rondas'){
+    diario.rondas = JSON.parse(JSON.stringify(rondasState));
+  } else {
+    const mapaEstado = {
+      dds: ddsState,
+      vtr: vtrState,
+      emergencia: emergenciaState,
+      avaliacao: { tipos: avaliacaoTiposState.slice(), local: avaliacaoState.local, status: avaliacaoState.status, desc: avaliacaoState.desc },
+      glp: glpState,
+      fonteRadioativa: fonteState,
+      inspecaoMensal: inspecaoState,
+      trabalhoQuente: taqState,
+      treinamento: treinamentoState,
+      caminhoesCombate: caminhoesState
+    };
+    diario[modulo] = JSON.parse(JSON.stringify(mapaEstado[modulo]));
+  }
+
+  if(!diario._timestamps) diario._timestamps = {};
+  diario._timestamps[modulo] = timestampAgora();
+
+  const concluidas = rondasConcluidasDoDiario(diario);
+  diario.status = concluidas === 3 ? 'concluido' : 'rascunho';
+
+  salvarDiarioNoStorage(diario);
+
+  atualizarTextoSalvo(modulo, diario._timestamps[modulo]);
+  atualizarBadgeStatusDiario(diario);
+  showToast('Módulo salvo.');
+}
+
+document.querySelectorAll('.btn-salvar-modulo').forEach(btn=>{
+  btn.addEventListener('click', ()=> salvarModulo(btn.dataset.modulo));
 });
+
+// ===== CARREGAR O RASCUNHO DE HOJE (OU DEIXAR EM BRANCO) AO ABRIR "NOVO DIÁRIO" =====
+const MODULOS_CHAVE = ['rondas','dds','vtr','emergencia','avaliacao','glp','fonteRadioativa','inspecaoMensal','trabalhoQuente','treinamento','caminhoesCombate'];
+
+function preencherRondasEDdsNaTela(diario){
+  rondasState = (diario.rondas && diario.rondas.length === 3)
+    ? JSON.parse(JSON.stringify(diario.rondas))
+    : [estadoRondaVazio(), estadoRondaVazio(), estadoRondaVazio()];
+  preencherRondasNaTela();
+
+  ddsState = diario.dds ? JSON.parse(JSON.stringify(diario.dds)) : { tema:'', evidenciaNome:null };
+  preencherTextoOuVazio('fDdsTema', ddsState.tema);
+  document.getElementById('fDdsEvidenciaLabel').textContent = ddsState.evidenciaNome || 'Tirar foto ou anexar da galeria';
+
+  const ts = diario._timestamps || {};
+  atualizarTextoSalvo('rondas', ts.rondas || null);
+  atualizarTextoSalvo('dds', ts.dds || null);
+}
+
+function carregarDiarioAtual(){
+  dataEmEdicao = hojeISO();
+  document.getElementById('cabecalhoDiario').style.display = '';
+  document.getElementById('modulosApenasHoje').style.display = '';
+  document.getElementById('headerModoOntem').style.display = 'none';
+
+  const diario = buscarDiarioHoje();
+
+  if(!diario){
+    diarioAtualId = null;
+    resetForm();
+    MODULOS_CHAVE.forEach(m => atualizarTextoSalvo(m, null));
+    atualizarBadgeStatusDiario({ status: 'rascunho' });
+    verificarDiarioOntemPendente();
+    return;
+  }
+
+  diarioAtualId = diario.id;
+
+  fEquipe.value = diario.equipe || (EQUIPES.includes(usuarioEmpresa) ? usuarioEmpresa : '');
+
+  preencherRondasEDdsNaTela(diario);
+
+  vtrState = diario.vtr ? JSON.parse(JSON.stringify(diario.vtr)) : { tag:'', placa:'', checklist:null, abastecimento:null, litros:null, local:'', evidenciaNome:null };
+
+  preencherTextoOuVazio('fVtrTag', vtrState.tag);
+  preencherTextoOuVazio('fVtrPlaca', vtrState.placa);
+  preencherTextoOuVazio('fVtrLitros', vtrState.litros);
+  preencherTextoOuVazio('fVtrLocal', vtrState.local);
+  document.getElementById('fVtrEvidenciaLabel').textContent = vtrState.evidenciaNome || 'Tirar foto ou anexar da galeria';
+  definirChipGroup('vtrChecklist', vtrState.checklist);
+  definirChipGroup('vtrAbastecimento', vtrState.abastecimento);
+
+  emergenciaState = diario.emergencia ? JSON.parse(JSON.stringify(diario.emergencia)) : {
+    chegada:'', saida:'', local:'', aph:null, traumaMembro:'',
+    resgateAnimal:'', resgateAnimalOutro:'', resgateStatus:null,
+    eventoAmbiental:'', eventoAmbientalOutro:'',
+    incendio:'', incendioOutro:'',
+    danosMateriais:'', comentario:''
+  };
+  preencherTextoOuVazio('fEmerChegada', emergenciaState.chegada);
+  preencherTextoOuVazio('fEmerSaida', emergenciaState.saida);
+  preencherTextoOuVazio('fEmerLocal', emergenciaState.local);
+  preencherTextoOuVazio('fEmerTraumaMembro', emergenciaState.traumaMembro);
+  document.getElementById('fEmerResgateAnimal').value = emergenciaState.resgateAnimal || '';
+  preencherTextoOuVazio('fEmerResgateOutro', emergenciaState.resgateAnimalOutro);
+  document.getElementById('fEmerEventoAmbiental').value = emergenciaState.eventoAmbiental || '';
+  preencherTextoOuVazio('fEmerEventoOutro', emergenciaState.eventoAmbientalOutro);
+  document.getElementById('fEmerIncendio').value = emergenciaState.incendio || '';
+  preencherTextoOuVazio('fEmerIncendioOutro', emergenciaState.incendioOutro);
+  document.getElementById('fEmerDanosMateriais').value = emergenciaState.danosMateriais || '';
+  preencherTextoOuVazio('fEmerComentario', emergenciaState.comentario);
+  definirChipGroup('emerAph', emergenciaState.aph);
+  definirChipGroup('emerResgateStatus', emergenciaState.resgateStatus);
+  toggleAlterBox('emerResgateOutroBox', emergenciaState.resgateAnimal === 'Outro');
+  toggleAlterBox('emerEventoOutroBox', emergenciaState.eventoAmbiental === 'Outro');
+  toggleAlterBox('emerIncendioOutroBox', emergenciaState.incendio === 'Outro');
+
+  const avaliacaoSalva = diario.avaliacao || { tipos:[], local:'', status:null, desc:'' };
+  avaliacaoState = { local: avaliacaoSalva.local || '', status: avaliacaoSalva.status || null, desc: avaliacaoSalva.desc || '' };
+  definirAvaliacaoTipos(avaliacaoSalva.tipos);
+  preencherTextoOuVazio('fAvaliacaoLocal', avaliacaoState.local);
+  preencherTextoOuVazio('fAvaliacaoDesc', avaliacaoState.desc);
+  definirChipGroup('avaliacaoStatus', avaliacaoState.status);
+
+  glpState = diario.glp ? JSON.parse(JSON.stringify(diario.glp)) : { acao:null, tag:'', inicio:'', termino:'' };
+  preencherTextoOuVazio('fGlpTag', glpState.tag);
+  preencherTextoOuVazio('fGlpInicio', glpState.inicio);
+  preencherTextoOuVazio('fGlpTermino', glpState.termino);
+  definirChipGroup('glpAcao', glpState.acao);
+
+  fonteState = diario.fonteRadioativa ? JSON.parse(JSON.stringify(diario.fonteRadioativa)) : { acao:null, tag:'', horario:'', local:'' };
+  preencherTextoOuVazio('fFonteTag', fonteState.tag);
+  preencherTextoOuVazio('fFonteHorario', fonteState.horario);
+  preencherTextoOuVazio('fFonteLocal', fonteState.local);
+  definirChipGroup('fonteAcao', fonteState.acao);
+
+  inspecaoState = diario.inspecaoMensal ? JSON.parse(JSON.stringify(diario.inspecaoMensal)) : { local:'', inicio:'', termino:'', comentario:'' };
+  document.getElementById('fInspecaoLocal').value = inspecaoState.local || '';
+  preencherTextoOuVazio('fInspecaoInicio', inspecaoState.inicio);
+  preencherTextoOuVazio('fInspecaoTermino', inspecaoState.termino);
+  preencherTextoOuVazio('fInspecaoComentario', inspecaoState.comentario);
+
+  taqState = diario.trabalhoQuente ? JSON.parse(JSON.stringify(diario.trabalhoQuente)) : { tag:'', local:'', inicio:'', termino:'' };
+  preencherTextoOuVazio('fTaqTag', taqState.tag);
+  preencherTextoOuVazio('fTaqLocal', taqState.local);
+  preencherTextoOuVazio('fTaqInicio', taqState.inicio);
+  preencherTextoOuVazio('fTaqTermino', taqState.termino);
+
+  treinamentoState = diario.treinamento ? JSON.parse(JSON.stringify(diario.treinamento)) : { tema:'', evidenciaNome:null };
+  preencherTextoOuVazio('fTreinamentoTema', treinamentoState.tema);
+  document.getElementById('fTreinamentoEvidenciaLabel').textContent = treinamentoState.evidenciaNome || 'Tirar foto ou anexar da galeria';
+
+  caminhoesState = diario.caminhoesCombate ? JSON.parse(JSON.stringify(diario.caminhoesCombate)) : { abt:null, abtDesc:'', agua:50, combustivel:50, aar:null, aarDesc:'' };
+  preencherTextoOuVazio('fAbtDesc', caminhoesState.abtDesc);
+  preencherTextoOuVazio('fAarDesc', caminhoesState.aarDesc);
+  document.getElementById('fCcAgua').value = caminhoesState.agua != null ? caminhoesState.agua : 50;
+  document.getElementById('valCcAgua').textContent = (caminhoesState.agua != null ? caminhoesState.agua : 50) + '%';
+  document.getElementById('fCcComb').value = caminhoesState.combustivel != null ? caminhoesState.combustivel : 50;
+  document.getElementById('valCcComb').textContent = (caminhoesState.combustivel != null ? caminhoesState.combustivel : 50) + '%';
+  definirChipGroup('abtStatus', caminhoesState.abt);
+  definirChipGroup('aarStatus', caminhoesState.aar);
+
+  const ts = diario._timestamps || {};
+  MODULOS_CHAVE.forEach(m => atualizarTextoSalvo(m, ts[m] || null));
+  atualizarBadgeStatusDiario(diario);
+  verificarDiarioOntemPendente();
+}
+
+// ===== SUBMIT =====
+// ===== SALVAMENTO POR MÓDULO (ver função salvarModulo mais abaixo) =====
+
 
 function showToast(msg, isError){
   const toast = document.getElementById('toast');

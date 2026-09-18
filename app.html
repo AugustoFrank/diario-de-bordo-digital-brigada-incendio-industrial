@@ -146,13 +146,31 @@
     <section class="view" id="view-novo">
       <form id="diarioForm">
 
+        <div id="avisoDiarioAnterior" class="card" style="display:none;background:var(--tint-amber-bg);border:1px solid var(--tint-amber-text);">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+            <div>
+              <b style="color:var(--tint-amber-text);">Diário de <span id="avisoDiarioAnteriorData"></span> com Rondas/DDS pendentes.</b>
+              <div class="card-sub" style="margin:0;">Você ainda pode completar dentro da janela de 24h.</div>
+            </div>
+            <button type="button" class="btn btn-primary" id="btnCompletarOntem">Completar agora</button>
+          </div>
+        </div>
+
+        <div id="headerModoOntem" class="card" style="display:none;background:var(--tint-amber-bg);">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+            <b>Editando diário de <span id="dataEmEdicaoLabel"></span> (só Rondas e DDS)</b>
+            <button type="button" class="btn btn-ghost" id="btnVoltarHoje">Voltar para hoje</button>
+          </div>
+        </div>
+
+        <div id="cabecalhoDiario">
         <div class="card">
           <h2>Identificação do turno</h2>
           <p class="card-sub">Data e responsável são vinculados automaticamente ao usuário logado</p>
           <div class="grid3">
             <div>
               <span class="field-label">Data</span>
-              <input type="date" id="fData" required>
+              <input type="date" id="fData" required readonly>
             </div>
             <div>
               <span class="field-label">Bombeiro</span>
@@ -165,6 +183,14 @@
               </select>
             </div>
           </div>
+        </div>
+
+        <div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+          <div>
+            <span class="field-label" style="margin:0;">Status do diário de hoje</span>
+          </div>
+          <span class="badge badge-warn" id="diarioStatusBadge">Rascunho</span>
+        </div>
         </div>
 
         <div class="card" id="rondasProgressoCard">
@@ -265,6 +291,11 @@
           </div>
         </div>
 
+                <div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:16px;padding-bottom:16px;">
+          <span id="saveStatus_rondas" style="font-size:13px;color:var(--text-muted);">Ainda não salvo hoje</span>
+          <button type="button" class="btn btn-primary btn-salvar-modulo" data-modulo="rondas">Salvar Rondas</button>
+        </div>
+
         <div class="card">
           <h2>DDS</h2>
           <p class="card-sub">Registro da participação em Diálogo Diário de Segurança</p>
@@ -284,6 +315,12 @@
           </div>
         </div>
 
+        <div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:16px;padding-bottom:16px;">
+          <span id="saveStatus_dds" style="font-size:13px;color:var(--text-muted);">Ainda não salvo hoje</span>
+          <button type="button" class="btn btn-primary btn-salvar-modulo" data-modulo="dds">Salvar DDS</button>
+        </div>
+
+        <div id="modulosApenasHoje">
         <div class="card">
           <h2>VTR</h2>
           <p class="card-sub">Registro das informações da viatura em uso</p>
@@ -334,6 +371,11 @@
             </label>
             <input type="file" id="fVtrEvidencia" accept="image/*" capture="environment" style="display:none;">
           </div>
+        </div>
+
+        <div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:16px;padding-bottom:16px;">
+          <span id="saveStatus_vtr" style="font-size:13px;color:var(--text-muted);">Ainda não salvo hoje</span>
+          <button type="button" class="btn btn-primary btn-salvar-modulo" data-modulo="vtr">Salvar VTR</button>
         </div>
 
         <div class="card">
@@ -420,6 +462,11 @@
           </div>
         </div>
 
+        <div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:16px;padding-bottom:16px;">
+          <span id="saveStatus_emergencia" style="font-size:13px;color:var(--text-muted);">Ainda não salvo hoje</span>
+          <button type="button" class="btn btn-primary btn-salvar-modulo" data-modulo="emergencia">Salvar Emergência</button>
+        </div>
+
         <div class="card">
           <h2>Avaliação</h2>
           <p class="card-sub">Registro de avaliações solicitadas</p>
@@ -446,6 +493,11 @@
           </div>
         </div>
 
+        <div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:16px;padding-bottom:16px;">
+          <span id="saveStatus_avaliacao" style="font-size:13px;color:var(--text-muted);">Ainda não salvo hoje</span>
+          <button type="button" class="btn btn-primary btn-salvar-modulo" data-modulo="avaliacao">Salvar Avaliação</button>
+        </div>
+
         <div class="card">
           <h2>Batedor de GLP</h2>
           <p class="card-sub">Registro de solicitação para batedor de GLP</p>
@@ -467,6 +519,11 @@
               <input type="time" id="fGlpTermino">
             </div>
           </div>
+        </div>
+
+        <div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:16px;padding-bottom:16px;">
+          <span id="saveStatus_glp" style="font-size:13px;color:var(--text-muted);">Ainda não salvo hoje</span>
+          <button type="button" class="btn btn-primary btn-salvar-modulo" data-modulo="glp">Salvar Batedor</button>
         </div>
 
         <div class="card">
@@ -492,6 +549,11 @@
           </div>
         </div>
 
+        <div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:16px;padding-bottom:16px;">
+          <span id="saveStatus_fonteRadioativa" style="font-size:13px;color:var(--text-muted);">Ainda não salvo hoje</span>
+          <button type="button" class="btn btn-primary btn-salvar-modulo" data-modulo="fonteRadioativa">Salvar Fonte</button>
+        </div>
+
         <div class="card">
           <h2>Inspeção Mensal</h2>
           <p class="card-sub">Registro de inspeção realizada pelo bombeiro de acordo com o cronograma mensal</p>
@@ -513,6 +575,11 @@
             <span class="field-label">Comentário</span>
             <textarea id="fInspecaoComentario" placeholder="Uma breve descrição da inspeção realizada, se achar necessário"></textarea>
           </div>
+        </div>
+
+        <div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:16px;padding-bottom:16px;">
+          <span id="saveStatus_inspecaoMensal" style="font-size:13px;color:var(--text-muted);">Ainda não salvo hoje</span>
+          <button type="button" class="btn btn-primary btn-salvar-modulo" data-modulo="inspecaoMensal">Salvar Inspeção</button>
         </div>
 
         <div class="card">
@@ -538,6 +605,11 @@
           </div>
         </div>
 
+        <div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:16px;padding-bottom:16px;">
+          <span id="saveStatus_trabalhoQuente" style="font-size:13px;color:var(--text-muted);">Ainda não salvo hoje</span>
+          <button type="button" class="btn btn-primary btn-salvar-modulo" data-modulo="trabalhoQuente">Salvar Acompanhamento</button>
+        </div>
+
         <div class="card">
           <h2>Treinamento</h2>
           <p class="card-sub">Registro de treinamentos realizados</p>
@@ -555,6 +627,11 @@
               <input type="file" id="fTreinamentoEvidencia" accept="image/*" capture="environment" style="display:none;">
             </div>
           </div>
+        </div>
+
+        <div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:16px;padding-bottom:16px;">
+          <span id="saveStatus_treinamento" style="font-size:13px;color:var(--text-muted);">Ainda não salvo hoje</span>
+          <button type="button" class="btn btn-primary btn-salvar-modulo" data-modulo="treinamento">Salvar Treinamento</button>
         </div>
 
         <div class="card">
@@ -599,9 +676,14 @@
           </div>
         </div>
 
+        <div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:16px;padding-bottom:16px;">
+          <span id="saveStatus_caminhoesCombate" style="font-size:13px;color:var(--text-muted);">Ainda não salvo hoje</span>
+          <button type="button" class="btn btn-ghost btn-salvar-modulo" data-modulo="caminhoesCombate">Salvar Caminhões</button>
+        </div>
+        </div>
+
         <div class="form-actions">
-          <button type="button" class="btn btn-ghost" id="btnLimpar">Limpar formulário</button>
-          <button type="submit" class="btn btn-primary">Registrar diário</button>
+          <button type="button" class="btn btn-ghost" id="btnLimpar">Limpar campos não salvos</button>
         </div>
       </form>
     </section>

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Diário de Bordo Digital</title>
-<link rel="stylesheet" href="css/style.css?v=202609120516">
+<link rel="stylesheet" href="css/style.css">
 <script>
   (function(){
     var t = localStorage.getItem('db_theme') || 'light';
@@ -14,8 +14,348 @@
 </head>
 <body>
 
-<div class="shell">
+  <!-- ===== MODAL GENÉRICO DE MÓDULO ===== -->
+<div class="modal-overlay" id="moduloModal">
+  <div class="modal-box">
+    <h3 id="moduloModalTitulo">Módulo</h3>
+    <p class="modal-sub" id="moduloModalSub"></p>
+    <div id="moduloModalCorpo"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-ghost" id="moduloModalCancelar">Cancelar</button>
+      <button type="button" class="btn btn-primary" id="moduloModalConfirmar">Confirmar</button>
+    </div>
+  </div>
+</div>
 
+<!-- ===== TEMPLATES DE CAMPOS POR MÓDULO ===== -->
+
+<template id="tpl-dds">
+  <div class="grid2">
+    <div>
+      <span class="field-label">Tema</span>
+      <input type="text" id="m-fDdsTema" placeholder="Tema tratado no DDS">
+    </div>
+    <div>
+      <span class="field-label">Evidência</span>
+      <label class="upload-box" for="m-fDdsEvidencia">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15v3a2 2 0 002 2h12a2 2 0 002-2v-3M12 3v12M7 8l5-5 5 5"/></svg>
+        <span id="m-fDdsEvidenciaLabel">Tirar foto ou anexar da galeria</span>
+      </label>
+      <input type="file" id="m-fDdsEvidencia" accept="image/*" capture="environment" style="display:none;">
+    </div>
+  </div>
+</template>
+
+<template id="tpl-ronda">
+  <div class="range-field" style="margin-bottom:18px;">
+    <div class="rf-head"><span class="field-label" style="margin:0;">Nível da R.T.I</span><b id="m-valRti">50%</b></div>
+    <input type="range" id="m-fRti" min="0" max="100" value="50">
+  </div>
+  <div class="bomba-grid" id="m-bombaGrid"></div>
+  <div class="grid2" style="margin-top:18px;">
+    <div>
+      <span class="field-label">Evidência</span>
+      <label class="upload-box" for="m-fEvidenciaRonda">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15v3a2 2 0 002 2h12a2 2 0 002-2v-3M12 3v12M7 8l5-5 5 5"/></svg>
+        <span id="m-fEvidenciaRondaLabel">Tirar foto ou anexar da galeria</span>
+      </label>
+      <input type="file" id="m-fEvidenciaRonda" accept="image/*" capture="environment" style="display:none;">
+    </div>
+    <div>
+      <span class="field-label">Comentário</span>
+      <textarea id="m-fComentarioRonda" placeholder="Uma breve descrição da ronda realizada"></textarea>
+    </div>
+  </div>
+</template>
+
+<template id="tpl-vtr">
+  <div class="grid3">
+    <div>
+      <span class="field-label">Tag VRT</span>
+      <input type="text" id="m-fVtrTag" placeholder="Ex.: VRT-01">
+    </div>
+    <div>
+      <span class="field-label">Placa</span>
+      <input type="text" id="m-fVtrPlaca" placeholder="Ex.: ABC-1234">
+    </div>
+    <div>
+      <span class="field-label">Checklist</span>
+      <div class="status-toggle" data-group="vtrChecklist" data-tones="ok,danger">
+        <button type="button" class="chip" data-value="Realizado">Realizado</button>
+        <button type="button" class="chip" data-value="Não Realizado">Não Realizado</button>
+      </div>
+    </div>
+  </div>
+  <div class="subsection">
+    <div class="subsection-title">Abastecimento</div>
+    <div class="grid3">
+      <div>
+        <span class="field-label">Abasteceu?</span>
+        <div class="status-toggle" data-group="vtrAbastecimento" data-tones="ok,ok">
+          <button type="button" class="chip" data-value="Não">Não</button>
+          <button type="button" class="chip" data-value="Sim">Sim</button>
+        </div>
+      </div>
+      <div id="m-vtrLitrosWrap" style="display:none;">
+        <span class="field-label">Quantos litros?</span>
+        <input type="number" id="m-fVtrLitros" min="0" placeholder="0">
+      </div>
+      <div id="m-vtrLocalWrap" style="display:none;">
+        <span class="field-label">Local onde abasteceu</span>
+        <input type="text" id="m-fVtrLocal" placeholder="Local do abastecimento">
+      </div>
+    </div>
+  </div>
+  <div class="subsection">
+    <span class="field-label">Evidência</span>
+    <label class="upload-box" for="m-fVtrEvidencia">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15v3a2 2 0 002 2h12a2 2 0 002-2v-3M12 3v12M7 8l5-5 5 5"/></svg>
+      <span id="m-fVtrEvidenciaLabel">Tirar foto ou anexar da galeria</span>
+    </label>
+    <input type="file" id="m-fVtrEvidencia" accept="image/*" capture="environment" style="display:none;">
+  </div>
+</template>
+
+<template id="tpl-emergencia">
+  <div class="grid3">
+    <div>
+      <span class="field-label">Horário de chegada</span>
+      <input type="time" id="m-fEmerChegada">
+    </div>
+    <div>
+      <span class="field-label">Horário de saída</span>
+      <input type="time" id="m-fEmerSaida">
+    </div>
+    <div>
+      <span class="field-label">Local do ocorrido</span>
+      <input type="text" id="m-fEmerLocal" placeholder="Local">
+    </div>
+  </div>
+  <div class="subsection">
+    <div class="subsection-title">APH</div>
+    <div class="status-toggle" data-group="emerAph" data-tones="warn,danger">
+      <button type="button" class="chip" data-value="Mal-estar">Mal-estar</button>
+      <button type="button" class="chip" data-value="Trauma">Trauma</button>
+    </div>
+    <div class="alter-box" id="m-emerTraumaBox">
+      <span class="field-label">Qual membro sofreu o trauma?</span>
+      <input type="text" id="m-fEmerTraumaMembro" placeholder="Ex.: braço direito">
+    </div>
+  </div>
+  <div class="subsection">
+    <div class="subsection-title">Resgate animal</div>
+    <div class="grid2">
+      <div>
+        <span class="field-label">Espécie</span>
+        <select id="m-fEmerResgateAnimal"><option value="">Não aplicável</option></select>
+      </div>
+      <div>
+        <span class="field-label">Situação</span>
+        <div class="status-toggle" data-group="emerResgateStatus" data-tones="ok,warn,danger">
+          <button type="button" class="chip" data-value="Sem Lesão">Sem Lesão</button>
+          <button type="button" class="chip" data-value="Com Lesão">Com Lesão</button>
+          <button type="button" class="chip" data-value="Óbito / Recolhimento">Óbito / Recolhimento</button>
+        </div>
+      </div>
+    </div>
+    <div class="alter-box" id="m-emerResgateOutroBox">
+      <span class="field-label">Qual espécie?</span>
+      <input type="text" id="m-fEmerResgateOutro" placeholder="Descreva a espécie">
+    </div>
+  </div>
+  <div class="subsection">
+    <div class="grid3">
+      <div>
+        <span class="field-label">Evento ambiental</span>
+        <select id="m-fEmerEventoAmbiental"><option value="">Não aplicável</option></select>
+      </div>
+      <div>
+        <span class="field-label">Incêndio</span>
+        <select id="m-fEmerIncendio"><option value="">Não aplicável</option></select>
+      </div>
+      <div>
+        <span class="field-label">Danos materiais</span>
+        <select id="m-fEmerDanosMateriais"><option value="">Não aplicável</option></select>
+      </div>
+    </div>
+    <div class="alter-box" id="m-emerEventoOutroBox">
+      <span class="field-label">Qual evento ambiental?</span>
+      <input type="text" id="m-fEmerEventoOutro">
+    </div>
+    <div class="alter-box" id="m-emerIncendioOutroBox">
+      <span class="field-label">Qual tipo de incêndio?</span>
+      <input type="text" id="m-fEmerIncendioOutro">
+    </div>
+  </div>
+  <div class="subsection">
+    <span class="field-label">Comentário</span>
+    <textarea id="m-fEmerComentario" placeholder="Uma breve descrição da emergência registrada"></textarea>
+  </div>
+</template>
+
+<template id="tpl-avaliacao">
+  <div class="status-toggle" id="m-avaliacaoTipos">
+    <button type="button" class="chip" data-value="Espaço Confinado">Espaço Confinado</button>
+    <button type="button" class="chip" data-value="Trabalho a Quente">Trabalho a Quente</button>
+  </div>
+  <div class="grid2" style="margin-top:18px;">
+    <div>
+      <span class="field-label">Local da avaliação</span>
+      <input type="text" id="m-fAvaliacaoLocal">
+    </div>
+    <div>
+      <span class="field-label">Status</span>
+      <div class="status-toggle" data-group="avaliacaoStatus" data-tones="ok,warn">
+        <button type="button" class="chip" data-value="Normal">Normal</button>
+        <button type="button" class="chip" data-value="Alterado">Alterado</button>
+      </div>
+    </div>
+  </div>
+  <div class="alter-box" id="m-avaliacaoAlteradoBox">
+    <span class="field-label">Qual alteração encontrada?</span>
+    <textarea id="m-fAvaliacaoDesc"></textarea>
+  </div>
+</template>
+
+<template id="tpl-glp">
+  <div class="status-toggle" data-group="glpAcao" data-tones="ok,ok">
+    <button type="button" class="chip" data-value="Entrada">Entrada</button>
+    <button type="button" class="chip" data-value="Saída">Saída</button>
+  </div>
+  <div class="grid3" style="margin-top:18px;">
+    <div>
+      <span class="field-label">Tag VRT</span>
+      <input type="text" id="m-fGlpTag">
+    </div>
+    <div>
+      <span class="field-label">Início</span>
+      <input type="time" id="m-fGlpInicio">
+    </div>
+    <div>
+      <span class="field-label">Término</span>
+      <input type="time" id="m-fGlpTermino">
+    </div>
+  </div>
+</template>
+
+<template id="tpl-fonteRadioativa">
+  <div class="status-toggle" data-group="fonteAcao" data-tones="warn,ok">
+    <button type="button" class="chip" data-value="Bloqueio">Bloqueio</button>
+    <button type="button" class="chip" data-value="Desbloqueio">Desbloqueio</button>
+  </div>
+  <div class="grid3" style="margin-top:18px;">
+    <div>
+      <span class="field-label">Tag da fonte</span>
+      <input type="text" id="m-fFonteTag">
+    </div>
+    <div>
+      <span class="field-label">Horário</span>
+      <input type="time" id="m-fFonteHorario">
+    </div>
+    <div>
+      <span class="field-label">Local da fonte</span>
+      <input type="text" id="m-fFonteLocal">
+    </div>
+  </div>
+</template>
+
+<template id="tpl-inspecaoMensal">
+  <div class="grid3">
+    <div>
+      <span class="field-label">Local</span>
+      <select id="m-fInspecaoLocal"><option value="">Selecione</option></select>
+    </div>
+    <div>
+      <span class="field-label">Início</span>
+      <input type="time" id="m-fInspecaoInicio">
+    </div>
+    <div>
+      <span class="field-label">Término</span>
+      <input type="time" id="m-fInspecaoTermino">
+    </div>
+  </div>
+  <div style="margin-top:18px;">
+    <span class="field-label">Comentário</span>
+    <textarea id="m-fInspecaoComentario" placeholder="Uma breve descrição da inspeção realizada, se achar necessário"></textarea>
+  </div>
+</template>
+
+<template id="tpl-trabalhoQuente">
+  <div class="grid2">
+    <div>
+      <span class="field-label">Tag equipamento</span>
+      <input type="text" id="m-fTaqTag">
+    </div>
+    <div>
+      <span class="field-label">Local</span>
+      <input type="text" id="m-fTaqLocal">
+    </div>
+    <div>
+      <span class="field-label">Início</span>
+      <input type="time" id="m-fTaqInicio">
+    </div>
+    <div>
+      <span class="field-label">Término</span>
+      <input type="time" id="m-fTaqTermino">
+    </div>
+  </div>
+</template>
+
+<template id="tpl-treinamento">
+  <div class="grid2">
+    <div>
+      <span class="field-label">Tema</span>
+      <input type="text" id="m-fTreinamentoTema" placeholder="Tema do treinamento">
+    </div>
+    <div>
+      <span class="field-label">Evidência</span>
+      <label class="upload-box" for="m-fTreinamentoEvidencia">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15v3a2 2 0 002 2h12a2 2 0 002-2v-3M12 3v12M7 8l5-5 5 5"/></svg>
+        <span id="m-fTreinamentoEvidenciaLabel">Tirar foto ou anexar da galeria</span>
+      </label>
+      <input type="file" id="m-fTreinamentoEvidencia" accept="image/*" capture="environment" style="display:none;">
+    </div>
+  </div>
+</template>
+
+<template id="tpl-caminhoesCombate">
+  <div class="subsection" style="margin-top:0;padding-top:0;border-top:none;">
+    <div class="subsection-title">ABT</div>
+    <div class="status-toggle" data-group="abtStatus" data-tones="ok,danger">
+      <button type="button" class="chip" data-value="OK">OK</button>
+      <button type="button" class="chip" data-value="Não Conformidade">Não Conformidade</button>
+    </div>
+    <div class="alter-box" id="m-abtDescBox">
+      <span class="field-label">Qual a não conformidade encontrada?</span>
+      <textarea id="m-fAbtDesc"></textarea>
+    </div>
+  </div>
+  <div class="subsection">
+    <div class="grid2">
+      <div class="range-field">
+        <div class="rf-head"><span class="field-label" style="margin:0;">Nível da água</span><b id="m-valCcAgua">50%</b></div>
+        <input type="range" id="m-fCcAgua" min="0" max="100" value="50">
+      </div>
+      <div class="range-field">
+        <div class="rf-head"><span class="field-label" style="margin:0;">Combustível</span><b id="m-valCcComb">50%</b></div>
+        <input type="range" id="m-fCcComb" min="0" max="100" value="50">
+      </div>
+    </div>
+  </div>
+  <div class="subsection">
+    <div class="subsection-title">AAR</div>
+    <div class="status-toggle" data-group="aarStatus" data-tones="ok,danger">
+      <button type="button" class="chip" data-value="OK">OK</button>
+      <button type="button" class="chip" data-value="Não Conformidade">Não Conformidade</button>
+    </div>
+    <div class="alter-box" id="m-aarDescBox">
+      <span class="field-label">Qual a não conformidade encontrada?</span>
+      <textarea id="m-fAarDesc"></textarea>
+    </div>
+  </div>
+</template>
+
+<div class="shell">
   <aside class="sidebar">
     <div class="brand">
       <div class="mark">DB</div>
@@ -144,548 +484,59 @@
       </div>
     </section>
     <section class="view" id="view-novo">
-      <form id="diarioForm">
 
-        <div id="avisoDiarioAnterior" class="card" style="display:none;background:var(--tint-amber-bg);border:1px solid var(--tint-amber-text);">
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
-            <div>
-              <b style="color:var(--tint-amber-text);">Diário de <span id="avisoDiarioAnteriorData"></span> com Rondas/DDS pendentes.</b>
-              <div class="card-sub" style="margin:0;">Você ainda pode completar dentro da janela de 24h.</div>
-            </div>
-            <button type="button" class="btn btn-primary" id="btnCompletarOntem">Completar agora</button>
-          </div>
-        </div>
-
-        <div id="headerModoOntem" class="card" style="display:none;background:var(--tint-amber-bg);">
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
-            <b>Editando diário de <span id="dataEmEdicaoLabel"></span> (só Rondas e DDS)</b>
-            <button type="button" class="btn btn-ghost" id="btnVoltarHoje">Voltar para hoje</button>
-          </div>
-        </div>
-
-        <div id="cabecalhoDiario">
-        <div class="card">
-          <h2>Identificação do turno</h2>
-          <p class="card-sub">Data e responsável são vinculados automaticamente ao usuário logado</p>
-          <div class="grid3">
-            <div>
-              <span class="field-label">Data</span>
-              <input type="date" id="fData" required readonly>
-            </div>
-            <div>
-              <span class="field-label">Bombeiro</span>
-              <div class="readonly-box" id="fNome">—</div>
-            </div>
-            <div>
-              <span class="field-label">Equipe</span>
-              <select id="fEquipe" required>
-                <option value="" disabled selected>Selecione</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        <div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+      <div class="card">
+        <h2>Identificação do turno</h2>
+        <p class="card-sub">Data e responsável são vinculados automaticamente ao usuário logado</p>
+        <div class="grid3">
           <div>
-            <span class="field-label" style="margin:0;">Status do diário de hoje</span>
+            <span class="field-label">Data</span>
+            <div class="readonly-box" id="turnoData">—</div>
           </div>
-          <span class="badge badge-warn" id="diarioStatusBadge">Rascunho</span>
-        </div>
-        </div>
-
-        <div class="card" id="rondasProgressoCard">
-          <h2>Rondas do turno</h2>
-          <p class="card-sub">Cada bombeiro fará 3 rondas obrigatórias no seu turno</p>
-          <div class="rondas-progress-row">
-            <div class="bar-track" style="flex:1;height:10px;">
-              <div class="bar-fill" id="rondasProgressoFill" style="width:0%; background:var(--moss-600);"></div>
-            </div>
-            <span class="field-label" style="margin:0;white-space:nowrap;" id="rondasProgressoTexto">0/3 concluídas</span>
+          <div>
+            <span class="field-label">Bombeiro</span>
+            <div class="readonly-box" id="turnoNome">—</div>
+          </div>
+          <div>
+            <span class="field-label">Equipe</span>
+            <select id="turnoEquipe" required>
+              <option value="" disabled selected>Selecione</option>
+            </select>
           </div>
         </div>
-
-        <div class="card ronda-card" id="rondaCard1" data-ronda="1">
-          <div class="ronda-card-head">
-            <div>
-              <h2>1ª Ronda</h2>
-              <p class="card-sub" style="margin-bottom:0;">Verificação do status de cada bomba</p>
-            </div>
-            <span class="ronda-status-badge" id="rondaBadge1">Pendente</span>
-          </div>
-          <div class="range-field" style="margin-bottom:18px;">
-            <div class="rf-head"><span class="field-label" style="margin:0;">Nível da R.T.I</span><b id="valRti1">50%</b></div>
-            <input type="range" id="fRti1" min="0" max="100" value="50">
-          </div>
-          <div class="bomba-grid" id="bombaGrid1"></div>
-          <div class="grid2" style="margin-top:18px;">
-            <div>
-              <span class="field-label">Evidência</span>
-              <label class="upload-box" for="fEvidencia1">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15v3a2 2 0 002 2h12a2 2 0 002-2v-3M12 3v12M7 8l5-5 5 5"/></svg>
-                <span id="fEvidencia1Label">Tirar foto ou anexar da galeria</span>
-              </label>
-              <input type="file" id="fEvidencia1" accept="image/*" capture="environment" style="display:none;">
-            </div>
-            <div>
-              <span class="field-label">Comentário</span>
-              <textarea id="fComentario1" placeholder="Uma breve descrição das rondas realizadas"></textarea>
-            </div>
-          </div>
+      </div>
+    
+      <div class="card" id="statusDiarioCard" style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+        <span class="field-label" style="margin:0;">Status do diário de hoje</span>
+        <span class="badge badge-warn" id="diarioStatusBadge">Rascunho</span>
+      </div>
+    
+      <div class="card">
+        <h2>Atividades do diário atual</h2>
+        <p class="card-sub">Quantas vezes cada módulo foi adicionado neste diário</p>
+        <div class="activity-grid" id="contagemModulosWrap"></div>
+      </div>
+    
+      <div class="card">
+        <h2>Adicionar registro</h2>
+        <p class="card-sub">Toque em um módulo para preencher e adicionar ao diário</p>
+        <div class="modulos-grid" id="modulosBotoesWrap"></div>
+      </div>
+    
+      <div class="card">
+        <h2>Registros deste diário <span id="carrinhoContador" class="badge badge-ok" style="margin-left:6px;">0</span></h2>
+        <p class="card-sub">Itens já confirmados — não podem ser editados ou removidos antes de finalizar</p>
+        <div id="carrinhoWrap"></div>
+        <div id="carrinhoEmpty" class="empty-state">
+          <b>Nenhum registro ainda</b>
+          Toque em um módulo acima para começar.
         </div>
-
-        <div class="card ronda-card" id="rondaCard2" data-ronda="2">
-          <div class="ronda-card-head">
-            <div>
-              <h2>2ª Ronda</h2>
-              <p class="card-sub" style="margin-bottom:0;">Verificação do status de cada bomba</p>
-            </div>
-            <span class="ronda-status-badge" id="rondaBadge2">Pendente</span>
-          </div>
-          <div class="range-field" style="margin-bottom:18px;">
-            <div class="rf-head"><span class="field-label" style="margin:0;">Nível da R.T.I</span><b id="valRti2">50%</b></div>
-            <input type="range" id="fRti2" min="0" max="100" value="50">
-          </div>
-          <div class="bomba-grid" id="bombaGrid2"></div>
-          <div class="grid2" style="margin-top:18px;">
-            <div>
-              <span class="field-label">Evidência</span>
-              <label class="upload-box" for="fEvidencia2">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15v3a2 2 0 002 2h12a2 2 0 002-2v-3M12 3v12M7 8l5-5 5 5"/></svg>
-                <span id="fEvidencia2Label">Tirar foto ou anexar da galeria</span>
-              </label>
-              <input type="file" id="fEvidencia2" accept="image/*" capture="environment" style="display:none;">
-            </div>
-            <div>
-              <span class="field-label">Comentário</span>
-              <textarea id="fComentario2" placeholder="Uma breve descrição das rondas realizadas"></textarea>
-            </div>
-          </div>
-        </div>
-
-        <div class="card ronda-card" id="rondaCard3" data-ronda="3">
-          <div class="ronda-card-head">
-            <div>
-              <h2>3ª Ronda</h2>
-              <p class="card-sub" style="margin-bottom:0;">Verificação do status de cada bomba</p>
-            </div>
-            <span class="ronda-status-badge" id="rondaBadge3">Pendente</span>
-          </div>
-          <div class="range-field" style="margin-bottom:18px;">
-            <div class="rf-head"><span class="field-label" style="margin:0;">Nível da R.T.I</span><b id="valRti3">50%</b></div>
-            <input type="range" id="fRti3" min="0" max="100" value="50">
-          </div>
-          <div class="bomba-grid" id="bombaGrid3"></div>
-          <div class="grid2" style="margin-top:18px;">
-            <div>
-              <span class="field-label">Evidência</span>
-              <label class="upload-box" for="fEvidencia3">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15v3a2 2 0 002 2h12a2 2 0 002-2v-3M12 3v12M7 8l5-5 5 5"/></svg>
-                <span id="fEvidencia3Label">Tirar foto ou anexar da galeria</span>
-              </label>
-              <input type="file" id="fEvidencia3" accept="image/*" capture="environment" style="display:none;">
-            </div>
-            <div>
-              <span class="field-label">Comentário</span>
-              <textarea id="fComentario3" placeholder="Uma breve descrição das rondas realizadas"></textarea>
-            </div>
-          </div>
-        </div>
-
-                <div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:16px;padding-bottom:16px;">
-          <span id="saveStatus_rondas" style="font-size:13px;color:var(--text-muted);">Ainda não salvo hoje</span>
-          <button type="button" class="btn btn-primary btn-salvar-modulo" data-modulo="rondas">Salvar Rondas</button>
-        </div>
-
-        <div class="card">
-          <h2>DDS</h2>
-          <p class="card-sub">Registro da participação em Diálogo Diário de Segurança</p>
-          <div class="grid2">
-            <div>
-              <span class="field-label">Tema</span>
-              <input type="text" id="fDdsTema" placeholder="Tema tratado no DDS">
-            </div>
-            <div>
-              <span class="field-label">Evidência</span>
-              <label class="upload-box" for="fDdsEvidencia">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15v3a2 2 0 002 2h12a2 2 0 002-2v-3M12 3v12M7 8l5-5 5 5"/></svg>
-                <span id="fDdsEvidenciaLabel">Tirar foto ou anexar da galeria</span>
-              </label>
-              <input type="file" id="fDdsEvidencia" accept="image/*" capture="environment" style="display:none;">
-            </div>
-          </div>
-        </div>
-
-        <div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:16px;padding-bottom:16px;">
-          <span id="saveStatus_dds" style="font-size:13px;color:var(--text-muted);">Ainda não salvo hoje</span>
-          <button type="button" class="btn btn-primary btn-salvar-modulo" data-modulo="dds">Salvar DDS</button>
-        </div>
-
-        <div id="modulosApenasHoje">
-        <div class="card">
-          <h2>VTR</h2>
-          <p class="card-sub">Registro das informações da viatura em uso</p>
-          <div class="grid3">
-            <div>
-              <span class="field-label">Tag VRT</span>
-              <input type="text" id="fVtrTag" placeholder="Ex.: VRT-01">
-            </div>
-            <div>
-              <span class="field-label">Placa</span>
-              <input type="text" id="fVtrPlaca" placeholder="Ex.: ABC-1234">
-            </div>
-            <div>
-              <span class="field-label">Checklist</span>
-              <div class="status-toggle" data-group="vtrChecklist" data-tones="ok,danger">
-                <button type="button" class="chip" data-value="Realizado">Realizado</button>
-                <button type="button" class="chip" data-value="Não Realizado">Não Realizado</button>
-              </div>
-            </div>
-          </div>
-
-          <div class="subsection">
-            <div class="subsection-title">Abastecimento</div>
-            <div class="grid3">
-              <div>
-                <span class="field-label">Abasteceu?</span>
-                <div class="status-toggle" data-group="vtrAbastecimento" data-tones="ok,ok">
-                  <button type="button" class="chip" data-value="Não">Não</button>
-                  <button type="button" class="chip" data-value="Sim">Sim</button>
-                </div>
-              </div>
-              <div id="vtrLitrosWrap" style="display:none;">
-                <span class="field-label">Quantos litros?</span>
-                <input type="number" id="fVtrLitros" min="0" placeholder="0">
-              </div>
-              <div id="vtrLocalWrap" style="display:none;">
-                <span class="field-label">Local onde abasteceu</span>
-                <input type="text" id="fVtrLocal" placeholder="Local do abastecimento">
-              </div>
-            </div>
-          </div>
-
-          <div class="subsection">
-            <span class="field-label">Evidência</span>
-            <label class="upload-box" for="fVtrEvidencia">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15v3a2 2 0 002 2h12a2 2 0 002-2v-3M12 3v12M7 8l5-5 5 5"/></svg>
-              <span id="fVtrEvidenciaLabel">Tirar foto ou anexar da galeria</span>
-            </label>
-            <input type="file" id="fVtrEvidencia" accept="image/*" capture="environment" style="display:none;">
-          </div>
-        </div>
-
-        <div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:16px;padding-bottom:16px;">
-          <span id="saveStatus_vtr" style="font-size:13px;color:var(--text-muted);">Ainda não salvo hoje</span>
-          <button type="button" class="btn btn-primary btn-salvar-modulo" data-modulo="vtr">Salvar VTR</button>
-        </div>
-
-        <div class="card">
-          <h2>Emergências</h2>
-          <p class="card-sub">Registro das informações de emergências ocorridas no plantão</p>
-
-          <div class="grid3">
-            <div>
-              <span class="field-label">Horário de chegada</span>
-              <input type="time" id="fEmerChegada">
-            </div>
-            <div>
-              <span class="field-label">Horário de saída</span>
-              <input type="time" id="fEmerSaida">
-            </div>
-            <div>
-              <span class="field-label">Local do ocorrido</span>
-              <input type="text" id="fEmerLocal" placeholder="Local">
-            </div>
-          </div>
-
-          <div class="subsection">
-            <div class="subsection-title">APH</div>
-            <div class="status-toggle" data-group="emerAph" data-tones="warn,danger">
-              <button type="button" class="chip" data-value="Mal-estar">Mal-estar</button>
-              <button type="button" class="chip" data-value="Trauma">Trauma</button>
-            </div>
-            <div class="alter-box" id="emerTraumaBox">
-              <span class="field-label">Qual membro sofreu o trauma?</span>
-              <input type="text" id="fEmerTraumaMembro" placeholder="Ex.: braço direito">
-            </div>
-          </div>
-
-          <div class="subsection">
-            <div class="subsection-title">Resgate animal</div>
-            <div class="grid2">
-              <div>
-                <span class="field-label">Espécie</span>
-                <select id="fEmerResgateAnimal"><option value="">Não aplicável</option></select>
-              </div>
-              <div>
-                <span class="field-label">Situação</span>
-                <div class="status-toggle" data-group="emerResgateStatus" data-tones="ok,warn,danger">
-                  <button type="button" class="chip" data-value="Sem Lesão">Sem Lesão</button>
-                  <button type="button" class="chip" data-value="Com Lesão">Com Lesão</button>
-                  <button type="button" class="chip" data-value="Óbito / Recolhimento">Óbito / Recolhimento</button>
-                </div>
-              </div>
-            </div>
-            <div class="alter-box" id="emerResgateOutroBox">
-              <span class="field-label">Qual espécie?</span>
-              <input type="text" id="fEmerResgateOutro" placeholder="Descreva a espécie">
-            </div>
-          </div>
-
-          <div class="subsection">
-            <div class="grid3">
-              <div>
-                <span class="field-label">Evento ambiental</span>
-                <select id="fEmerEventoAmbiental"><option value="">Não aplicável</option></select>
-              </div>
-              <div>
-                <span class="field-label">Incêndio</span>
-                <select id="fEmerIncendio"><option value="">Não aplicável</option></select>
-              </div>
-              <div>
-                <span class="field-label">Danos materiais</span>
-                <select id="fEmerDanosMateriais"><option value="">Não aplicável</option></select>
-              </div>
-            </div>
-            <div class="alter-box" id="emerEventoOutroBox">
-              <span class="field-label">Qual evento ambiental?</span>
-              <input type="text" id="fEmerEventoOutro">
-            </div>
-            <div class="alter-box" id="emerIncendioOutroBox">
-              <span class="field-label">Qual tipo de incêndio?</span>
-              <input type="text" id="fEmerIncendioOutro">
-            </div>
-          </div>
-
-          <div class="subsection">
-            <span class="field-label">Comentário</span>
-            <textarea id="fEmerComentario" placeholder="Uma breve descrição da emergência registrada"></textarea>
-          </div>
-        </div>
-
-        <div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:16px;padding-bottom:16px;">
-          <span id="saveStatus_emergencia" style="font-size:13px;color:var(--text-muted);">Ainda não salvo hoje</span>
-          <button type="button" class="btn btn-primary btn-salvar-modulo" data-modulo="emergencia">Salvar Emergência</button>
-        </div>
-
-        <div class="card">
-          <h2>Avaliação</h2>
-          <p class="card-sub">Registro de avaliações solicitadas</p>
-          <div class="status-toggle" id="avaliacaoTipos">
-            <button type="button" class="chip" data-value="Espaço Confinado">Espaço Confinado</button>
-            <button type="button" class="chip" data-value="Trabalho a Quente">Trabalho a Quente</button>
-          </div>
-          <div class="grid2" style="margin-top:18px;">
-            <div>
-              <span class="field-label">Local da avaliação</span>
-              <input type="text" id="fAvaliacaoLocal">
-            </div>
-            <div>
-              <span class="field-label">Status</span>
-              <div class="status-toggle" data-group="avaliacaoStatus" data-tones="ok,warn">
-                <button type="button" class="chip" data-value="Normal">Normal</button>
-                <button type="button" class="chip" data-value="Alterado">Alterado</button>
-              </div>
-            </div>
-          </div>
-          <div class="alter-box" id="avaliacaoAlteradoBox">
-            <span class="field-label">Qual alteração encontrada?</span>
-            <textarea id="fAvaliacaoDesc"></textarea>
-          </div>
-        </div>
-
-        <div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:16px;padding-bottom:16px;">
-          <span id="saveStatus_avaliacao" style="font-size:13px;color:var(--text-muted);">Ainda não salvo hoje</span>
-          <button type="button" class="btn btn-primary btn-salvar-modulo" data-modulo="avaliacao">Salvar Avaliação</button>
-        </div>
-
-        <div class="card">
-          <h2>Batedor de GLP</h2>
-          <p class="card-sub">Registro de solicitação para batedor de GLP</p>
-          <div class="status-toggle" data-group="glpAcao" data-tones="ok,ok">
-            <button type="button" class="chip" data-value="Entrada">Entrada</button>
-            <button type="button" class="chip" data-value="Saída">Saída</button>
-          </div>
-          <div class="grid3" style="margin-top:18px;">
-            <div>
-              <span class="field-label">Tag VRT</span>
-              <input type="text" id="fGlpTag">
-            </div>
-            <div>
-              <span class="field-label">Início</span>
-              <input type="time" id="fGlpInicio">
-            </div>
-            <div>
-              <span class="field-label">Término</span>
-              <input type="time" id="fGlpTermino">
-            </div>
-          </div>
-        </div>
-
-        <div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:16px;padding-bottom:16px;">
-          <span id="saveStatus_glp" style="font-size:13px;color:var(--text-muted);">Ainda não salvo hoje</span>
-          <button type="button" class="btn btn-primary btn-salvar-modulo" data-modulo="glp">Salvar Batedor</button>
-        </div>
-
-        <div class="card">
-          <h2>Fonte Radioativa</h2>
-          <p class="card-sub">Registro de solicitação para bloqueio/desbloqueio de fonte radioativa</p>
-          <div class="status-toggle" data-group="fonteAcao" data-tones="warn,ok">
-            <button type="button" class="chip" data-value="Bloqueio">Bloqueio</button>
-            <button type="button" class="chip" data-value="Desbloqueio">Desbloqueio</button>
-          </div>
-          <div class="grid3" style="margin-top:18px;">
-            <div>
-              <span class="field-label">Tag da fonte</span>
-              <input type="text" id="fFonteTag">
-            </div>
-            <div>
-              <span class="field-label">Horário</span>
-              <input type="time" id="fFonteHorario">
-            </div>
-            <div>
-              <span class="field-label">Local da fonte</span>
-              <input type="text" id="fFonteLocal">
-            </div>
-          </div>
-        </div>
-
-        <div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:16px;padding-bottom:16px;">
-          <span id="saveStatus_fonteRadioativa" style="font-size:13px;color:var(--text-muted);">Ainda não salvo hoje</span>
-          <button type="button" class="btn btn-primary btn-salvar-modulo" data-modulo="fonteRadioativa">Salvar Fonte</button>
-        </div>
-
-        <div class="card">
-          <h2>Inspeção Mensal</h2>
-          <p class="card-sub">Registro de inspeção realizada pelo bombeiro de acordo com o cronograma mensal</p>
-          <div class="grid3">
-            <div>
-              <span class="field-label">Local</span>
-              <select id="fInspecaoLocal"><option value="">Selecione</option></select>
-            </div>
-            <div>
-              <span class="field-label">Início</span>
-              <input type="time" id="fInspecaoInicio">
-            </div>
-            <div>
-              <span class="field-label">Término</span>
-              <input type="time" id="fInspecaoTermino">
-            </div>
-          </div>
-          <div style="margin-top:18px;">
-            <span class="field-label">Comentário</span>
-            <textarea id="fInspecaoComentario" placeholder="Uma breve descrição da inspeção realizada, se achar necessário"></textarea>
-          </div>
-        </div>
-
-        <div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:16px;padding-bottom:16px;">
-          <span id="saveStatus_inspecaoMensal" style="font-size:13px;color:var(--text-muted);">Ainda não salvo hoje</span>
-          <button type="button" class="btn btn-primary btn-salvar-modulo" data-modulo="inspecaoMensal">Salvar Inspeção</button>
-        </div>
-
-        <div class="card">
-          <h2>Acompanhamento Trabalho a Quente</h2>
-          <p class="card-sub">Registro de solicitação para acompanhamento de atividades de trabalho a quente</p>
-          <div class="grid2">
-            <div>
-              <span class="field-label">Tag equipamento</span>
-              <input type="text" id="fTaqTag">
-            </div>
-            <div>
-              <span class="field-label">Local</span>
-              <input type="text" id="fTaqLocal">
-            </div>
-            <div>
-              <span class="field-label">Início</span>
-              <input type="time" id="fTaqInicio">
-            </div>
-            <div>
-              <span class="field-label">Término</span>
-              <input type="time" id="fTaqTermino">
-            </div>
-          </div>
-        </div>
-
-        <div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:16px;padding-bottom:16px;">
-          <span id="saveStatus_trabalhoQuente" style="font-size:13px;color:var(--text-muted);">Ainda não salvo hoje</span>
-          <button type="button" class="btn btn-primary btn-salvar-modulo" data-modulo="trabalhoQuente">Salvar Acompanhamento</button>
-        </div>
-
-        <div class="card">
-          <h2>Treinamento</h2>
-          <p class="card-sub">Registro de treinamentos realizados</p>
-          <div class="grid2">
-            <div>
-              <span class="field-label">Tema</span>
-              <input type="text" id="fTreinamentoTema" placeholder="Tema do treinamento">
-            </div>
-            <div>
-              <span class="field-label">Evidência</span>
-              <label class="upload-box" for="fTreinamentoEvidencia">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15v3a2 2 0 002 2h12a2 2 0 002-2v-3M12 3v12M7 8l5-5 5 5"/></svg>
-                <span id="fTreinamentoEvidenciaLabel">Tirar foto ou anexar da galeria</span>
-              </label>
-              <input type="file" id="fTreinamentoEvidencia" accept="image/*" capture="environment" style="display:none;">
-            </div>
-          </div>
-        </div>
-
-        <div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:16px;padding-bottom:16px;">
-          <span id="saveStatus_treinamento" style="font-size:13px;color:var(--text-muted);">Ainda não salvo hoje</span>
-          <button type="button" class="btn btn-primary btn-salvar-modulo" data-modulo="treinamento">Salvar Treinamento</button>
-        </div>
-
-        <div class="card">
-          <h2>Caminhões de Combate</h2>
-          <p class="card-sub">Status dos caminhões de combate</p>
-
-          <div class="subsection">
-            <div class="subsection-title">ABT</div>
-            <div class="status-toggle" data-group="abtStatus" data-tones="ok,danger">
-              <button type="button" class="chip" data-value="OK">OK</button>
-              <button type="button" class="chip" data-value="Não Conformidade">Não Conformidade</button>
-            </div>
-            <div class="alter-box" id="abtDescBox">
-              <span class="field-label">Qual a não conformidade encontrada?</span>
-              <textarea id="fAbtDesc"></textarea>
-            </div>
-          </div>
-
-          <div class="subsection">
-            <div class="grid2">
-              <div class="range-field">
-                <div class="rf-head"><span class="field-label" style="margin:0;">Nível da água</span><b id="valCcAgua">50%</b></div>
-                <input type="range" id="fCcAgua" min="0" max="100" value="50">
-              </div>
-              <div class="range-field">
-                <div class="rf-head"><span class="field-label" style="margin:0;">Combustível</span><b id="valCcComb">50%</b></div>
-                <input type="range" id="fCcComb" min="0" max="100" value="50">
-              </div>
-            </div>
-          </div>
-
-          <div class="subsection">
-            <div class="subsection-title">AAR</div>
-            <div class="status-toggle" data-group="aarStatus" data-tones="ok,danger">
-              <button type="button" class="chip" data-value="OK">OK</button>
-              <button type="button" class="chip" data-value="Não Conformidade">Não Conformidade</button>
-            </div>
-            <div class="alter-box" id="aarDescBox">
-              <span class="field-label">Qual a não conformidade encontrada?</span>
-              <textarea id="fAarDesc"></textarea>
-            </div>
-          </div>
-        </div>
-
-        <div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:16px;padding-bottom:16px;">
-          <span id="saveStatus_caminhoesCombate" style="font-size:13px;color:var(--text-muted);">Ainda não salvo hoje</span>
-          <button type="button" class="btn btn-ghost btn-salvar-modulo" data-modulo="caminhoesCombate">Salvar Caminhões</button>
-        </div>
-        </div>
-
-        <div class="form-actions">
-          <button type="button" class="btn btn-ghost" id="btnLimpar">Limpar campos não salvos</button>
-        </div>
-      </form>
+      </div>
+    
+      <div class="form-actions">
+        <button type="button" class="btn btn-primary" id="btnFinalizarDiario">Finalizar diário</button>
+      </div>
+    
     </section>
 
     <!-- ===== VIEW: HISTÓRICO ===== -->
@@ -744,8 +595,8 @@
   </div>
 </div>
 
-<script src="js/data.js?v=202609120516"></script>
-<script src="js/staff.js?v=202609120516"></script>
-<script src="js/app.js?v=20260912053440"></script>
+<script src="js/data.js" defer></script>
+<script src="js/staff.js" defer></script>
+<script src="js/app.js" defer></script>
 </body>
 </html>

@@ -246,11 +246,19 @@ const modalCancelar = document.getElementById('moduloModalCancelar');
 let moduloAtualKey = null;
 let coletarDadosAtual = null; // função que devolve o objeto "dados" pra enviar
 
+// fechar modal clicando fora
+modal.addEventListener('click', (e)=>{
+  if(e.target === modal){
+    fecharModal();
+  }
+});
+
 function fecharModal(){
   modal.classList.remove('show');
   modalCorpo.innerHTML = '';
   moduloAtualKey = null;
   coletarDadosAtual = null;
+  document.body.style.overflow = '';
 }
 modalCancelar.addEventListener('click', fecharModal);
 
@@ -267,6 +275,8 @@ function abrirModalModulo(key){
   moduloAtualKey = key;
   modalTitulo.textContent = meta.label;
   modalSub.textContent = meta.hint;
+
+  document.body.style.overflow = 'hidden';
 
   const tpl = document.getElementById(templateIdPara(key));
   modalCorpo.innerHTML = '';

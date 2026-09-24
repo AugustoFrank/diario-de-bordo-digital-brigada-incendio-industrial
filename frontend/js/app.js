@@ -679,15 +679,77 @@ function renderHistorico(){
   });
 }
 
+const CAMPO_LABELS = {
+  tema: 'Tema',
+  evidenciaNome: 'Evidência',
+  local: 'Local',
+  comentario: 'Comentário',
+  inicio: 'Início',
+  termino: 'Término',
+  tag: 'Tag',
+  placa: 'Placa',
+  litros: 'Litros',
+  checklist: 'Checklist',
+  abastecimento: 'Abasteceu?',
+  rti: 'Nível da R.T.I',
+  horario: 'Horário',
+  chegada: 'Horário de chegada',
+  saida: 'Horário de saída',
+  aph: 'APH',
+  traumaMembro: 'Membro do trauma',
+  resgateAnimal: 'Espécie (resgate)',
+  resgateAnimalOutro: 'Espécie (outro)',
+  resgateStatus: 'Situação do resgate',
+  eventoAmbiental: 'Evento ambiental',
+  eventoAmbientalOutro: 'Evento ambiental (outro)',
+  incendio: 'Incêndio',
+  incendioOutro: 'Incêndio (outro)',
+  danosMateriais: 'Danos materiais',
+  tipos: 'Tipos de avaliação',
+  status: 'Status',
+  desc: 'Descrição',
+  acao: 'Ação',
+  abt: 'ABT',
+  abtDesc: 'Não conformidade (ABT)',
+  aar: 'AAR',
+  aarDesc: 'Não conformidade (AAR)',
+  agua: 'Nível da água',
+  combustivel: 'Combustível',
+};
+
+function formatarValorCampo(v){
+  if(Array.isArray(v)) return v.join(', ');
+  if(v === true) return 'Sim';
+  if(v === false) return 'Não';
+  return v;
+}
+
+function bombasAlteradasTexto(bombas){
+  if(!bombas) return null;
+  const alteradas = Object.entries(bombas).filter(([,st]) => st && st !== 'Automático');
+  if(!alteradas.length) return null;
+  return alteradas.map(([nome, st]) => nome + ' (' + st + ')').join(', ');
+}
+
 function renderDetalheOcorrencias(diario){
-  if(!diario.ocorrencias.length) return '<p class="card-sub">Nenhum módulo registrado neste diário.</p>';
-  return diario.ocorrencias.map(o=>{
-    const linhas = Object.entries(o.dados)
-      .filter(([k,v]) => v !== null && v !== '' && k !== 'bombas')
-      .map(([k,v]) => '<b>' + k + ':</b> ' + (Array.isArray(v) ? v.join(', ') : v))
-      .join('<br>');
-    return `<div class="detail-card"><h4>${o.modulo_label} <span class="card-sub">${formatarHoraCurta(o.criado_em)}</span></h4><p>${linhas || '—'}</p></div>`;
+  if(!diario.ocorrencias.length){
+    return '<p class="detail-empty">Nenhum módulo registrado neste diário.</p>';
+  }
+  const cards = diario.ocorrencias.map(o=>{
+    const linhas = [];
+    Object.entries(o.dados).forEach(([k, v])=>{
+      if(k === 'bombas'){
+        const texto = bombasAlteradasTexto(v);
+        linhas.push('<div class="dm-row"><b>Bombas alteradas:</b> ' + (texto || 'Nenhuma') + '</div>');
+        return;
+      }
+      if(v === null || v === undefined || v === '') return;
+      const label = CAMPO_LABELS[k] || k;
+      linhas.push('<div class="dm-row"><b>' + label + ':</b> ' + formatarValorCampo(v) + '</div>');
+    });
+    return '<div class="detail-mod"><h4>' + o.modulo_label + ' · ' + formatarHoraCurta(o.criado_em) + '</h4>' + (linhas.join('') || '<div class="dm-row">—</div>') + '</div>';
   }).join('');
+  return '<div class="detail-grid">' + cards + '</div>';
 }
 
 async function excluirDiarioHistorico(id){

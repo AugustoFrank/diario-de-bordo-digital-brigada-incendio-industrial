@@ -16,8 +16,11 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+# from registros import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('registros.urls')),
+    # path('diarios/', views.listar_diarios, name='listar_diarios'),
+#     path('diario/<int:diario_id>/excluir/', views.excluir_diario, name='excluir_diario'),
 ]

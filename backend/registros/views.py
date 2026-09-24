@@ -135,3 +135,25 @@ def contador_rondas(request):
     data_str = request.GET.get('data') or timezone.localdate().isoformat()
     total = Ocorrencia.objects.filter(modulo='ronda', diario__data=data_str).count()
     return JsonResponse({'data': data_str, 'rondas_realizadas': total, 'meta': 3})
+
+@csrf_exempt
+@require_http_methods(['GET'])
+def listar_diarios(request):
+    diarios = Diario.objects.prefetch_related('ocorrencias').filter(finalizado_em__isnull=False).order_by('-data')
+    resultado = []
+    for d in diarios:
+        item = diario_para_json(d)
+        item['ocorrencias'] = [ocorrencia_para_json(o) for o in d.ocorrencias.all()]
+        resultado.append(item)
+    return JsonResponse({'diarios': resultado})
+
+
+@csrf_exempt
+@require_http_methods(['POST'])
+def excluir_diario(request, diario_id):
+    try:
+        diario = Diario.objects.get(id=diario_id)
+    except Diario.DoesNotExist:
+        return JsonResponse({'erro': 'Diário não encontrado.'}, status=404)
+    diario.delete()
+    return JsonResponse({'ok': True})

@@ -662,7 +662,7 @@ function renderHistorico(){
         <td>${bombasComAtencaoDoDiario(d)}</td>
         <td>${atividades.join(', ') || '—'}</td>
         <td><button type="button" class="expand-toggle" data-expand-id="${d.id}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></button></td>
-        <td><button type="button" class="btn-delete" title="Excluir diário" onclick="excluirDiarioHistorico(${d.id})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0l-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6h16z"/></svg></button></td>
+        <td><button type="button" class="row-delete" title="Excluir diário" onclick="excluirDiarioHistorico(${d.id})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0l-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6h16z"/></svg></button></td>
       </tr>
       <tr class="detail-row" id="detailRow_${d.id}">
         <td colspan="9"><div class="detail-wrap">${renderDetalheOcorrencias(d)}</div></td>

@@ -132,9 +132,11 @@ async function abrirOuCarregarDiario(){
   try{
     const resp = await apiGet('diario-atual/?nome=' + encodeURIComponent(usuarioLabel) + '&equipe=' + encodeURIComponent(equipe));
     diarioAtual = resp.diario;
+    const pendente = resp.pendente;
     document.getElementById('turnoData').textContent = formatDateBR(diarioAtual.data);
     document.getElementById('turnoNome').textContent = diarioAtual.nome;
     atualizarBadgeStatusDiario(diarioAtual);
+    atualizarAvisoPendente(pendente, diarioAtual.data);
     await carregarOcorrencias();
     await atualizarContadorRondasTurno();
   }catch(err){
@@ -144,13 +146,22 @@ async function abrirOuCarregarDiario(){
 turnoEquipe.addEventListener('change', abrirOuCarregarDiario);
 
 function atualizarBadgeStatusDiario(diario){
-  const badge = document.getElementById('diarioStatusBadge');
   const concluido = !!diario.finalizado_em;
-  badge.textContent = concluido ? 'Finalizado' : 'Rascunho';
-  badge.classList.toggle('badge-ok', concluido);
-  badge.classList.toggle('badge-warn', !concluido);
   document.getElementById('btnFinalizarDiario').disabled = concluido;
   document.getElementById('btnFinalizarDiario').style.opacity = concluido ? '.5' : '1';
+}
+
+function atualizarAvisoPendente(pendente, data){
+  const card = document.getElementById('avisoPendenteCard');
+  card.style.display = pendente ? 'flex' : 'none';
+  if(pendente){
+    document.getElementById('avisoPendenteData').textContent = formatDateBR(data);
+  }
+  document.querySelectorAll('.modulo-btn').forEach(btn=>{
+    btn.disabled = !!pendente;
+    btn.style.opacity = pendente ? '.5' : '1';
+    btn.style.cursor = pendente ? 'not-allowed' : 'pointer';
+  });
 }
 
 // ===== CONTADOR COLETIVO DE RONDAS =====
@@ -182,32 +193,6 @@ async function carregarOcorrencias(){
   }
 }
 
-function renderCarrinho(){
-  const wrap = document.getElementById('carrinhoWrap');
-  const empty = document.getElementById('carrinhoEmpty');
-  const contador = document.getElementById('carrinhoContador');
-  contador.textContent = ocorrenciasAtuais.length;
-
-  if(!ocorrenciasAtuais.length){
-    wrap.innerHTML = '';
-    empty.style.display = 'block';
-    return;
-  }
-  empty.style.display = 'none';
-
-  wrap.innerHTML = ocorrenciasAtuais.map(oc=>{
-    const meta = MODULOS.find(m => m.key === oc.modulo);
-    const label = meta ? meta.label : oc.modulo_label;
-    return `
-      <div class="carrinho-item">
-        <div>
-          <div class="ci-label">${label}</div>
-          <div class="ci-hint">${formatarHoraCurta(oc.criado_em)}</div>
-        </div>
-      </div>`;
-  }).join('');
-}
-
 function renderContagemModulos(){
   const wrap = document.getElementById('contagemModulosWrap');
   wrap.innerHTML = MODULOS.map(m=>{
@@ -218,6 +203,10 @@ function renderContagemModulos(){
         <span class="ar-count">${count}</span>
       </div>`;
   }).join('');
+}
+
+function renderCarrinho(){
+  // Card "Registros deste diário" removido — contagem por módulo continua em renderContagemModulos()
 }
 
 // ===== BOTÕES DE MÓDULO =====
@@ -269,6 +258,10 @@ function abrirModalModulo(key){
   }
   if(diarioAtual.finalizado_em){
     showToast('Este diário já foi finalizado.', true);
+    return;
+  }
+  if(diarioAtual.data !== hoje.toISOString().slice(0,10)){
+    showToast('Finalize o diário pendente antes de adicionar novos registros.', true);
     return;
   }
   const meta = MODULOS.find(m => m.key === key);
@@ -588,10 +581,125 @@ function goTo(view){
   document.getElementById('pageTitle').textContent = titles[view][0];
   document.getElementById('pageSubtitle').textContent = titles[view][1];
   if(view === 'novo') abrirOuCarregarDiario();
+  if(view === 'historico') carregarHistorico();
 }
 document.querySelectorAll('.nav-item[data-view]').forEach(btn=>{
   btn.addEventListener('click', ()=> goTo(btn.dataset.view));
 });
+
+// ===== HISTÓRICO (via API) =====
+let diariosHistorico = [];
+
+async function carregarHistorico(){
+  try{
+    const resp = await apiGet('diarios/');
+    diariosHistorico = resp.diarios;
+    renderHistorico();
+  }catch(err){
+    showToast('Erro ao carregar histórico: ' + err.message, true);
+  }
+}
+
+function rondasDoDiario(diario){
+  return diario.ocorrencias.filter(o => o.modulo === 'ronda');
+}
+
+function rondasColetivasDoDia(dataISO){
+  return diariosHistorico
+    .filter(d => d.data === dataISO)
+    .reduce((total, d) => total + rondasDoDiario(d).length, 0);
+}
+
+function rtiMedioDoDiario(diario){
+  const rtis = rondasDoDiario(diario).map(o => o.dados.rti).filter(v => typeof v === 'number');
+  if(!rtis.length) return 0;
+  return Math.round(rtis.reduce((a,b)=>a+b,0) / rtis.length);
+}
+
+function bombasComAtencaoDoDiario(diario){
+  let count = 0;
+  rondasDoDiario(diario).forEach(o=>{
+    Object.values(o.dados.bombas || {}).forEach(status=>{
+      if(status && status !== 'Automático') count++;
+    });
+  });
+  return count;
+}
+
+function atividadesDoDiario(diario){
+  const contagem = {};
+  diario.ocorrencias.forEach(o=>{
+    contagem[o.modulo] = (contagem[o.modulo] || 0) + 1;
+  });
+  return MODULOS
+    .filter(m => contagem[m.key])
+    .map(m => m.label + (contagem[m.key] > 1 ? ' ×' + contagem[m.key] : ''));
+}
+
+function renderHistorico(){
+  const body = document.getElementById('historicoBody');
+  const empty = document.getElementById('historicoEmpty');
+  body.innerHTML = '';
+
+  if(!diariosHistorico.length){
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  diariosHistorico.forEach(d=>{
+    const totalColetivo = rondasColetivasDoDia(d.data);
+    const rondaClasse = totalColetivo >= 3 ? 'badge-ok' : 'badge-warn';
+    const atividades = atividadesDoDiario(d);
+
+    body.insertAdjacentHTML('beforeend', `
+      <tr>
+        <td>${formatDateBR(d.data)}</td>
+        <td>${d.nome}</td>
+        <td>${d.equipe}</td>
+        <td><span class="badge ${rondaClasse}">${totalColetivo}/3</span></td>
+        <td>${rtiMedioDoDiario(d)}%</td>
+        <td>${bombasComAtencaoDoDiario(d)}</td>
+        <td>${atividades.join(', ') || '—'}</td>
+        <td><button type="button" class="expand-toggle" data-expand-id="${d.id}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></button></td>
+        <td><button type="button" class="btn-delete" title="Excluir diário" onclick="excluirDiarioHistorico(${d.id})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0l-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6h16z"/></svg></button></td>
+      </tr>
+      <tr class="detail-row" id="detailRow_${d.id}">
+        <td colspan="9"><div class="detail-wrap">${renderDetalheOcorrencias(d)}</div></td>
+      </tr>
+    `);
+  });
+
+  body.querySelectorAll('[data-expand-id]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const row = document.getElementById('detailRow_' + btn.dataset.expandId);
+      row.classList.toggle('show');
+      btn.classList.toggle('open');
+    });
+  });
+}
+
+function renderDetalheOcorrencias(diario){
+  if(!diario.ocorrencias.length) return '<p class="card-sub">Nenhum módulo registrado neste diário.</p>';
+  return diario.ocorrencias.map(o=>{
+    const linhas = Object.entries(o.dados)
+      .filter(([k,v]) => v !== null && v !== '' && k !== 'bombas')
+      .map(([k,v]) => '<b>' + k + ':</b> ' + (Array.isArray(v) ? v.join(', ') : v))
+      .join('<br>');
+    return `<div class="detail-card"><h4>${o.modulo_label} <span class="card-sub">${formatarHoraCurta(o.criado_em)}</span></h4><p>${linhas || '—'}</p></div>`;
+  }).join('');
+}
+
+async function excluirDiarioHistorico(id){
+  if(!confirm('Excluir este diário e todos os registros dele? Essa ação não pode ser desfeita.')) return;
+  try{
+    await apiPost('diario/' + id + '/excluir/', {});
+    showToast('Diário excluído.');
+    carregarHistorico();
+  }catch(err){
+    showToast('Erro ao excluir: ' + err.message, true);
+  }
+}
 
 // ===== INICIALIZAÇÃO =====
 goTo('novo');

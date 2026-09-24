@@ -1263,6 +1263,27 @@ tbody tr:hover {
   .bottom-nav .nav-item[disabled] {
     opacity: .35;
   }
+
+    #cardAtividadesModulo {
+    position: relative;
+  }
+
+  #cardAtividadesModulo #contagemModulosWrap {
+    max-height: 165px;
+    overflow-y: auto;
+  }
+
+  #cardAtividadesModulo::after {
+    content: "";
+    position: absolute;
+    left: 18px;
+    right: 18px;
+    bottom: 18px;
+    height: 30px;
+    background: linear-gradient(to bottom, transparent, var(--surface));
+    pointer-events: none;
+    /* border-radius: 0 0 12px 12px; */
+  }
 }
 
 @media (max-width: 420px) {
@@ -1600,15 +1621,20 @@ tbody tr:hover {
   padding: 14px;
   border: 1px solid var(--border);
   border-radius: 10px;
-  background: transparent;
+  background: var(--surface);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.116);
   cursor: pointer;
   text-align: left;
   font-family: 'Poppins';
-  transition: border-color .15s, background .15s;
+  transition: box-shadow .15s, transform .08s;
 }
 
 .modulo-btn:hover {
-  border-color: var(--moss-600);
+  box-shadow: var(--shadow-md);
+}
+
+.modulo-btn:active {
+  transform: translateY(1px);
 }
 
 .modulo-btn .mb-label {
@@ -1690,4 +1716,22 @@ tbody tr:hover {
   justify-content: flex-end;
   gap: 10px;
   margin-top: 20px;
+}
+
+#contagemModulosWrap {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+#contagemModulosWrap::-webkit-scrollbar {
+  width: 6px;
+}
+
+#contagemModulosWrap::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+#contagemModulosWrap::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 10px;
 }

@@ -485,6 +485,15 @@
     </section>
     <section class="view" id="view-novo">
 
+      <div class="card" id="avisoPendenteCard" style="display:none;background:var(--tint-amber-bg);border:1px solid var(--tint-amber-text);">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+          <div>
+            <b style="color:var(--tint-amber-text);">Diário de <span id="avisoPendenteData"></span> ainda não foi finalizado.</b>
+            <div class="card-sub" style="margin:0;">Finalize esse diário antes de adicionar novos registros.</div>
+          </div>
+        </div>
+      </div>
+
       <div class="card">
         <h2>Identificação do turno</h2>
         <p class="card-sub">Data e responsável são vinculados automaticamente ao usuário logado</p>
@@ -506,12 +515,7 @@
         </div>
       </div>
     
-      <div class="card" id="statusDiarioCard" style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
-        <span class="field-label" style="margin:0;">Status do diário de hoje</span>
-        <span class="badge badge-warn" id="diarioStatusBadge">Rascunho</span>
-      </div>
-    
-      <div class="card">
+      <div class="card" id="cardAtividadesModulo">
         <h2>Atividades do diário atual</h2>
         <p class="card-sub">Quantas vezes cada módulo foi adicionado neste diário</p>
         <div class="activity-grid" id="contagemModulosWrap"></div>
@@ -521,16 +525,6 @@
         <h2>Adicionar registro</h2>
         <p class="card-sub">Toque em um módulo para preencher e adicionar ao diário</p>
         <div class="modulos-grid" id="modulosBotoesWrap"></div>
-      </div>
-    
-      <div class="card">
-        <h2>Registros deste diário <span id="carrinhoContador" class="badge badge-ok" style="margin-left:6px;">0</span></h2>
-        <p class="card-sub">Itens já confirmados — não podem ser editados ou removidos antes de finalizar</p>
-        <div id="carrinhoWrap"></div>
-        <div id="carrinhoEmpty" class="empty-state">
-          <b>Nenhum registro ainda</b>
-          Toque em um módulo acima para começar.
-        </div>
       </div>
     
       <div class="form-actions">

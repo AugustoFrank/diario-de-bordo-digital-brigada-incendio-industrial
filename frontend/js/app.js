@@ -43,6 +43,15 @@ function showToast(msg, isError){
 }
 
 // ===== DATA/HORA =====
+
+function hojeLocalISO(){
+  const d = new Date();
+  const ano = d.getFullYear();
+  const mes = String(d.getMonth() + 1).padStart(2, '0');
+  const dia = String(d.getDate()).padStart(2, '0');
+  return `${ano}-${mes}-${dia}`;
+}
+
 const hoje = new Date();
 document.getElementById('topDate').textContent = hoje.toLocaleDateString('pt-BR', {
   weekday:'long', day:'2-digit', month:'long'
@@ -260,7 +269,7 @@ function abrirModalModulo(key){
     showToast('Este diário já foi finalizado.', true);
     return;
   }
-  if(diarioAtual.data !== hoje.toISOString().slice(0,10)){
+  if(diarioAtual.data !== hojeLocalISO()){
     showToast('Finalize o diário pendente antes de adicionar novos registros.', true);
     return;
   }

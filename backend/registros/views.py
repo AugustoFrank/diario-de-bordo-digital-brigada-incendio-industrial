@@ -6,6 +6,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from django.utils import timezone
+from django.db.models import Count  
 
 from .models import Diario, Ocorrencia
 
@@ -157,3 +158,68 @@ def excluir_diario(request, diario_id):
         return JsonResponse({'erro': 'Diário não encontrado.'}, status=404)
     diario.delete()
     return JsonResponse({'ok': True})
+
+
+EQUIPES_CONHECIDAS = ['ADM', 'ALPHA', 'BRAVO', 'CHARLIE', 'DELTA', 'ESTRUTURA']
+
+
+@csrf_exempt
+@require_http_methods(['GET'])
+def estatisticas(request):
+    inicio = request.GET.get('inicio')
+    fim = request.GET.get('fim')
+
+    if not inicio or not fim:
+        return JsonResponse({'erro': 'Parâmetros inicio e fim são obrigatórios.'}, status=400)
+
+    diarios_periodo = Diario.objects.filter(
+        finalizado_em__isnull=False,
+        data__gte=inicio,
+        data__lte=fim,
+    )
+
+    # contagem por módulo (todos os 11, mesmo com 0)
+    contagem_bruta = (
+        Ocorrencia.objects
+        .filter(diario__in=diarios_periodo)
+        .values('modulo')
+        .annotate(total=Count('id'))
+    )
+    por_modulo = {c['modulo']: c['total'] for c in contagem_bruta}
+    modulos = {chave: por_modulo.get(chave, 0) for chave, _ in Ocorrencia.MODULO_CHOICES}
+
+    # diários por equipe (todas as 6, mesmo com 0)
+    diarios_bruto = dict(
+        diarios_periodo.values_list('equipe').annotate(total=Count('id'))
+    )
+    diarios_por_equipe = [
+        {'equipe': eq, 'total': diarios_bruto.get(eq, 0)} for eq in EQUIPES_CONHECIDAS
+    ]
+
+    # diários por colaborador, agrupado por equipe (só quem tem registro — zero-fill fica pro front)
+    diarios_por_colaborador = list(
+        diarios_periodo
+        .values('equipe', 'nome')
+        .annotate(total=Count('id'))
+        .order_by('equipe', '-total')
+    )
+
+    # rondas por equipe (todas as 6, mesmo com 0)
+    rondas_bruto = dict(
+        Ocorrencia.objects
+        .filter(diario__in=diarios_periodo, modulo='ronda')
+        .values_list('diario__equipe')
+        .annotate(total=Count('id'))
+    )
+    rondas_por_equipe = [
+        {'equipe': eq, 'total': rondas_bruto.get(eq, 0)} for eq in EQUIPES_CONHECIDAS
+    ]
+
+    return JsonResponse({
+        'inicio': inicio,
+        'fim': fim,
+        'modulos': modulos,
+        'diarios_por_equipe': diarios_por_equipe,
+        'diarios_por_colaborador': diarios_por_colaborador,
+        'rondas_por_equipe': rondas_por_equipe,
+    })

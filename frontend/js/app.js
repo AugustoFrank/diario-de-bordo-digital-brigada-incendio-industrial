@@ -1,5 +1,7 @@
 // ===== CONFIG =====
-const API_BASE = 'https://vps67288.publiccloud.com.br/diario-bordo/api/';
+const API_BASE = (location.hostname === '127.0.0.1' || location.hostname === 'localhost')
+  ? 'http://127.0.0.1:8001/api/'
+  : 'https://vps67288.publiccloud.com.br/diario-bordo/api/';
 
 // ===== AUTENTICAÇÃO (mock) =====
 const usuario = sessionStorage.getItem('db_usuario');
@@ -774,3 +776,5 @@ async function excluirDiarioHistorico(id){
 
 // ===== INICIALIZAÇÃO =====
 goTo('novo');
+
+preSelecionarEquipe();

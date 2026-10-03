@@ -66,7 +66,7 @@ const STAFF = [
 
 // Times operacionais selecionáveis no campo "Nome da equipe" do diário.
 // ADM fica de fora — é suporte/gestão, não uma equipe de campo.
-const EQUIPES = ["ALPHA", "BRAVO", "CHARLIE", "DELTA", "ESTRUTURA"];
+const EQUIPES = ["ADM", "ALPHA", "BRAVO", "CHARLIE", "DELTA", "ESTRUTURA"];
 
 function nomeParaLabel(nomeCompleto){
   return nomeCompleto

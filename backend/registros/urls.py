@@ -9,4 +9,5 @@ urlpatterns = [
     path('rondas-contador/', views.contador_rondas, name='contador_rondas'),
     path('diarios/', views.listar_diarios, name='listar_diarios'),
     path('diario/<int:diario_id>/excluir/', views.excluir_diario, name='excluir_diario'),
+    path('estatisticas/', views.estatisticas, name='estatisticas'),
 ]

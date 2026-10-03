@@ -7,9 +7,14 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from django.utils import timezone
 from django.db.models import Count  
+import os
 
 from .models import Diario, Ocorrencia
 
+
+EXTENSOES_EVIDENCIA = {'.jpg', '.jpeg', '.png', '.webp'}
+TIPOS_EVIDENCIA = {'image/jpeg', 'image/png', 'image/webp'}
+TAMANHO_MAX_EVIDENCIA = 8 * 1024 * 1024  # 8 MB
 
 def diario_para_json(diario):
     return {
@@ -29,6 +34,7 @@ def ocorrencia_para_json(ocorrencia):
         'modulo': ocorrencia.modulo,
         'modulo_label': ocorrencia.get_modulo_display(),
         'dados': ocorrencia.dados,
+        'evidencia_url': ocorrencia.evidencia.url if ocorrencia.evidencia else None,
         'criado_em': ocorrencia.criado_em.isoformat(),
     }
 
@@ -46,6 +52,7 @@ def diario_atual(request):
     """
     nome = request.GET.get('nome', '').strip()
     equipe = request.GET.get('equipe', '').strip()
+    trocar_equipe = request.GET.get('trocar_equipe') == '1'
 
     if not nome or not equipe:
         return JsonResponse({'erro': 'Parâmetros nome e equipe são obrigatórios.'}, status=400)
@@ -60,11 +67,16 @@ def diario_atual(request):
     )
 
     if diario_aberto:
+        if trocar_equipe and diario_aberto.equipe != equipe and diario_aberto.data == hoje:
+            diario_aberto.equipe = equipe
+            diario_aberto.save(update_fields=['equipe'])
         pendente = diario_aberto.data < hoje
         return JsonResponse({
             'diario': diario_para_json(diario_aberto),
             'pendente': pendente,
         })
+
+    
 
     novo = Diario.objects.create(data=hoje, nome=nome, equipe=equipe)
     return JsonResponse({'diario': diario_para_json(novo), 'pendente': False})
@@ -90,14 +102,25 @@ def finalizar_diario(request, diario_id):
 @require_http_methods(['GET', 'POST'])
 def ocorrencias(request):
     if request.method == 'POST':
-        try:
-            body = json.loads(request.body)
-        except json.JSONDecodeError:
-            return JsonResponse({'erro': 'JSON inválido.'}, status=400)
+        arquivo = None
 
-        diario_id = body.get('diario_id')
-        modulo = body.get('modulo')
-        dados = body.get('dados')
+        if request.content_type and request.content_type.startswith('multipart/form-data'):
+            diario_id = request.POST.get('diario_id')
+            modulo = request.POST.get('modulo')
+            dados_raw = request.POST.get('dados')
+            try:
+                dados = json.loads(dados_raw) if dados_raw else None
+            except json.JSONDecodeError:
+                return JsonResponse({'erro': 'Campo dados inválido (JSON mal formado).'}, status=400)
+            arquivo = request.FILES.get('evidencia')
+        else:
+            try:
+                body = json.loads(request.body)
+            except json.JSONDecodeError:
+                return JsonResponse({'erro': 'JSON inválido.'}, status=400)
+            diario_id = body.get('diario_id')
+            modulo = body.get('modulo')
+            dados = body.get('dados')
 
         if not diario_id or not modulo or dados is None:
             return JsonResponse({'erro': 'diario_id, modulo e dados são obrigatórios.'}, status=400)
@@ -113,7 +136,14 @@ def ocorrencias(request):
         if modulo not in dict(Ocorrencia.MODULO_CHOICES):
             return JsonResponse({'erro': 'Módulo inválido.'}, status=400)
 
-        ocorrencia = Ocorrencia.objects.create(diario=diario, modulo=modulo, dados=dados)
+        if arquivo:
+            extensao = os.path.splitext(arquivo.name)[1].lower()
+            if extensao not in EXTENSOES_EVIDENCIA or arquivo.content_type not in TIPOS_EVIDENCIA:
+                return JsonResponse({'erro': 'Arquivo inválido. Envie uma imagem JPG, PNG ou WEBP.'}, status=400)
+            if arquivo.size > TAMANHO_MAX_EVIDENCIA:
+                return JsonResponse({'erro': 'Imagem muito grande. O limite é 8 MB.'}, status=400)
+
+        ocorrencia = Ocorrencia.objects.create(diario=diario, modulo=modulo, dados=dados, evidencia=arquivo)
         return JsonResponse({'ocorrencia': ocorrencia_para_json(ocorrencia)}, status=201)
 
     # GET: lista as ocorrências de um diário (o "carrinho") — ?diario_id=
@@ -140,7 +170,7 @@ def contador_rondas(request):
 @csrf_exempt
 @require_http_methods(['GET'])
 def listar_diarios(request):
-    diarios = Diario.objects.prefetch_related('ocorrencias').filter(finalizado_em__isnull=False).order_by('-data')
+    diarios = Diario.objects.prefetch_related('ocorrencias').filter(finalizado_em__isnull=False).order_by('-data', '-finalizado_em', '-id')
     resultado = []
     for d in diarios:
         item = diario_para_json(d)

@@ -133,16 +133,29 @@ async function apiPost(path, body){
   return res.json();
 }
 
+async function apiPostForm(path, formData){
+  const res = await fetch(API_BASE + path, {
+    method: 'POST',
+    body: formData
+  });
+  if(!res.ok){
+    const erro = await res.json().catch(()=>({}));
+    throw new Error(erro.erro || ('Erro na API: ' + res.status));
+  }
+  return res.json();
+}
+
 // ===== ABRIR / CARREGAR DIÁRIO DO DIA =====
-async function abrirOuCarregarDiario(){
+async function abrirOuCarregarDiario(trocarEquipe = false){
   const equipe = turnoEquipe.value;
   if(!equipe){
     document.getElementById('turnoData').textContent = '—';
     return;
   }
   try{
-    const resp = await apiGet('diario-atual/?nome=' + encodeURIComponent(usuarioLabel) + '&equipe=' + encodeURIComponent(equipe));
+    const resp = await apiGet('diario-atual/?nome=' + encodeURIComponent(usuarioLabel) + '&equipe=' + encodeURIComponent(equipe) + (trocarEquipe ? '&trocar_equipe=1' : ''));
     diarioAtual = resp.diario;
+    turnoEquipe.value = diarioAtual.equipe;
     const pendente = resp.pendente;
     document.getElementById('turnoData').textContent = formatDateBR(diarioAtual.data);
     document.getElementById('turnoNome').textContent = diarioAtual.nome;
@@ -154,7 +167,7 @@ async function abrirOuCarregarDiario(){
     showToast('Erro ao abrir diário: ' + err.message, true);
   }
 }
-turnoEquipe.addEventListener('change', abrirOuCarregarDiario);
+turnoEquipe.addEventListener('change', ()=> abrirOuCarregarDiario(true));
 
 function atualizarBadgeStatusDiario(diario){
   const concluido = !!diario.finalizado_em;
@@ -258,6 +271,7 @@ function fecharModal(){
   modalCorpo.innerHTML = '';
   moduloAtualKey = null;
   coletarDadosAtual = null;
+  evidenciaArquivoAtual = null;
   document.body.style.overflow = '';
 }
 modalCancelar.addEventListener('click', fecharModal);
@@ -294,16 +308,27 @@ function abrirModalModulo(key){
 modalConfirmar.addEventListener('click', async ()=>{
   if(!coletarDadosAtual) return;
   const dados = coletarDadosAtual();
+  const modulo = moduloAtualKey;
+  const arquivo = evidenciaArquivoAtual;
   try{
-    await apiPost('ocorrencias/', {
-      diario_id: diarioAtual.id,
-      modulo: moduloAtualKey,
-      dados: dados
-    });
+    if(arquivo){
+      const fd = new FormData();
+      fd.append('diario_id', diarioAtual.id);
+      fd.append('modulo', modulo);
+      fd.append('dados', JSON.stringify(dados));
+      fd.append('evidencia', arquivo);
+      await apiPostForm('ocorrencias/', fd);
+    }else{
+      await apiPost('ocorrencias/', {
+        diario_id: diarioAtual.id,
+        modulo: modulo,
+        dados: dados
+      });
+    }
     fecharModal();
     showToast('Registro adicionado.');
     await carregarOcorrencias();
-    if(moduloAtualKey === 'ronda'){
+    if(modulo === 'ronda'){
       await atualizarContadorRondasTurno();
     }
   }catch(err){
@@ -351,14 +376,18 @@ function popularSelect(selectEl, opcoes){
   });
 }
 
+let evidenciaArquivoAtual = null;
+
 function wireEvidencia(container, inputId, labelId){
   const input = container.querySelector('#' + inputId);
   const label = container.querySelector('#' + labelId);
   let nome = null;
+  evidenciaArquivoAtual = null;
   if(input){
     input.addEventListener('change', (e)=>{
       const file = e.target.files[0];
       nome = file ? file.name : null;
+      evidenciaArquivoAtual = file || null;
       if(label) label.textContent = nome || 'Tirar foto ou anexar da galeria';
     });
   }
@@ -564,11 +593,19 @@ function montarModulo(key, c){
 
 // ===== FINALIZAR DIÁRIO =====
 document.getElementById('btnFinalizarDiario').addEventListener('click', async ()=>{
-  if(!diarioAtual || diarioAtual.finalizado_em) return;
+  if(!diarioAtual || diarioAtual.finalizado_em) return;if(!diarioAtual){
+    showToast('Nenhum diário aberto. Selecione a equipe do turno.', true);
+    return;
+  }
+  if(diarioAtual.finalizado_em){
+    showToast('Este diário já foi finalizado.', true);
+    return;
+  }
   if(!confirm('Finalizar este diário? Não será possível adicionar novos registros depois.')) return;
   try{
     const resp = await apiPost('diario/' + diarioAtual.id + '/finalizar/', {});
     diarioAtual = resp.diario;
+    turnoEquipe.value = diarioAtual.equipe;
     atualizarBadgeStatusDiario(diarioAtual);
     showToast('Diário finalizado com sucesso.');
   }catch(err){
@@ -593,6 +630,7 @@ function goTo(view){
   document.getElementById('pageSubtitle').textContent = titles[view][1];
   if(view === 'novo') abrirOuCarregarDiario();
   if(view === 'historico') carregarHistorico();
+  if(view === 'painel') iniciarPainel();
 }
 document.querySelectorAll('.nav-item[data-view]').forEach(btn=>{
   btn.addEventListener('click', ()=> goTo(btn.dataset.view));
@@ -666,8 +704,8 @@ function renderHistorico(){
     body.insertAdjacentHTML('beforeend', `
       <tr>
         <td>${formatDateBR(d.data)}</td>
-        <td>${d.nome}</td>
-        <td>${d.equipe}</td>
+        <td>${painelEsc(d.nome)}</td>
+        <td>${painelEsc(d.equipe)}</td>
         <td><span class="badge ${rondaClasse}">${totalColetivo}/3</span></td>
         <td>${rtiMedioDoDiario(d)}%</td>
         <td>${bombasComAtencaoDoDiario(d)}</td>
@@ -742,6 +780,13 @@ function bombasAlteradasTexto(bombas){
   return alteradas.map(([nome, st]) => nome + ' (' + st + ')').join(', ');
 }
 
+function urlEvidencia(caminho){
+  if(!caminho) return null;
+  if(/^https?:\/\//.test(caminho)) return caminho;
+  const base = API_BASE.replace(/api\/?$/, '');
+  return base + caminho.replace(/^\//, '');
+}
+
 function renderDetalheOcorrencias(diario){
   if(!diario.ocorrencias.length){
     return '<p class="detail-empty">Nenhum módulo registrado neste diário.</p>';
@@ -749,16 +794,22 @@ function renderDetalheOcorrencias(diario){
   const cards = diario.ocorrencias.map(o=>{
     const linhas = [];
     Object.entries(o.dados).forEach(([k, v])=>{
+      if(k === 'evidenciaNome' && o.evidencia_url) return;
       if(k === 'bombas'){
         const texto = bombasAlteradasTexto(v);
-        linhas.push('<div class="dm-row"><b>Bombas alteradas:</b> ' + (texto || 'Nenhuma') + '</div>');
+        linhas.push('<div class="dm-row"><b>Bombas alteradas:</b> ' + painelEsc(texto || 'Nenhuma') + '</div>');
         return;
       }
       if(v === null || v === undefined || v === '') return;
       const label = CAMPO_LABELS[k] || k;
-      linhas.push('<div class="dm-row"><b>' + label + ':</b> ' + formatarValorCampo(v) + '</div>');
+      linhas.push('<div class="dm-row"><b>' + painelEsc(label) + ':</b> ' + painelEsc(formatarValorCampo(v)) + '</div>');
     });
-    return '<div class="detail-mod"><h4>' + o.modulo_label + ' · ' + formatarHoraCurta(o.criado_em) + '</h4>' + (linhas.join('') || '<div class="dm-row">—</div>') + '</div>';
+    const urlEv = urlEvidencia(o.evidencia_url);
+    if(urlEv){
+      const urlSegura = painelEsc(urlEv);
+      linhas.push('<div class="dm-row"><a href="' + urlSegura + '" target="_blank" rel="noopener"><img class="dm-thumb" src="' + urlSegura + '" alt="Evidência" loading="lazy"></a></div>');
+    }
+    return '<div class="detail-mod"><h4>' + painelEsc(o.modulo_label) + ' · ' + formatarHoraCurta(o.criado_em) + '</h4>' + (linhas.join('') || '<div class="dm-row">—</div>') + '</div>';
   }).join('');
   return '<div class="detail-grid">' + cards + '</div>';
 }
@@ -773,6 +824,183 @@ async function excluirDiarioHistorico(id){
     showToast('Erro ao excluir: ' + err.message, true);
   }
 }
+
+// ===== PAINEL GERAL (estatísticas por período) =====
+const PAINEL_EQUIPES = ['ADM','ALPHA', 'BRAVO', 'CHARLIE', 'DELTA', 'ESTRUTURA'];
+
+const PAINEL_MODULOS = [
+  {key:'dds', rotulo:'DDS', icone:'<path d="M12 3l7 3v5c0 5-3.5 8-7 10-3.5-2-7-5-7-10V6z"/>'},
+  {key:'ronda', rotulo:'Ronda', icone:'<circle cx="12" cy="5" r="2"/><path d="M12 8v6l-3 6M12 14l3 6M8 11l4-3 4 3"/>'},
+  {key:'vtr', rotulo:'VTR', icone:'<path d="M3 7h11v9H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="18" r="1.5"/><circle cx="17" cy="18" r="1.5"/>'},
+  {key:'emergencia', rotulo:'Emergência', icone:'<path d="M12 3l9 16H3z"/><path d="M12 10v4M12 17h.01"/>'},
+  {key:'avaliacao', rotulo:'Avaliação', icone:'<rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4h6v3H9zM9 13l2 2 4-4"/>'},
+  {key:'glp', rotulo:'Batedor GLP', icone:'<path d="M12 3c1 4 5 5 5 10a5 5 0 01-10 0c0-2 1-3 2-4 0 2 1 3 2 3 0-3-1-6 1-9z"/>'},
+  {key:'fonte_radioativa', rotulo:'Fonte radioativa', icone:'<circle cx="12" cy="12" r="2"/><path d="M12 3a9 9 0 019 9M12 3a9 9 0 00-9 9M12 21a9 9 0 009-9M12 21a9 9 0 01-9-9"/>'},
+  {key:'inspecao_mensal', rotulo:'Inspeção mensal', icone:'<rect x="4" y="5" width="16" height="16" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>'},
+  {key:'trabalho_quente', rotulo:'Trab. a quente', icone:'<path d="M10 14V5a2 2 0 014 0v9a4 4 0 11-4 0z"/>'},
+  {key:'treinamento', rotulo:'Treinamento', icone:'<path d="M2 9l10-5 10 5-10 5zM6 11v5c3 2 9 2 12 0v-5"/>'},
+  {key:'caminhoes_combate', rotulo:'Caminhões', icone:'<path d="M3 7h11v9H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="18" r="1.5"/><circle cx="17" cy="18" r="1.5"/>'}
+];
+
+let painelDados = null;
+let painelEquipeSel = null;
+
+function painelEsc(t){
+  return String(t).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function painelNomeEquipe(eq){
+  return eq.charAt(0) + eq.slice(1).toLowerCase();
+}
+
+function painelNomeColab(nome){
+  return (typeof nomeParaLabel === 'function') ? nomeParaLabel(nome) : nome;
+}
+
+function painelBarrasHtml(itens, opts){
+  opts = opts || {};
+  if(!itens.length) return '<div class="barra-vazio">Sem registros no período.</div>';
+  const max = Math.max.apply(null, itens.map(i => i.valor)) || 0;
+  return itens.map(i=>{
+    const pct = max ? Math.round(i.valor / max * 100) : 0;
+    let cls = 'barra-linha';
+    if(opts.clicavel) cls += ' clicavel';
+    if(opts.selecionada) cls += (i.chave === opts.selecionada) ? ' ativa' : ' apagada';
+    return `
+      <div class="${cls}" data-chave="${painelEsc(i.chave || '')}" title="${painelEsc(i.titulo || i.rotulo)}">
+        <span class="barra-nome">${painelEsc(i.rotulo)}</span>
+        <span class="barra-trilho"><span class="barra-fill" style="width:${pct}%"></span></span>
+        <span class="barra-valor">${i.valor}</span>
+      </div>`;
+  }).join('');
+}
+
+function painelPorEquipe(lista){
+  const mapa = {};
+  lista.forEach(x => { mapa[x.equipe] = x.total; });
+  return PAINEL_EQUIPES.map(eq => ({
+    chave: eq,
+    rotulo: painelNomeEquipe(eq),
+    valor: mapa[eq] || 0
+  }));
+}
+
+function painelColabItens(){
+  const lista = painelDados.diarios_por_colaborador;
+  let itens;
+  if(painelEquipeSel){
+    itens = lista
+      .filter(c => c.equipe === painelEquipeSel)
+      .map(c => ({rotulo: painelNomeColab(c.nome), titulo: c.nome, valor: c.total}));
+  } else {
+    const soma = {};
+    lista.forEach(c => { soma[c.nome] = (soma[c.nome] || 0) + c.total; });
+    itens = Object.keys(soma).map(n => ({rotulo: painelNomeColab(n), titulo: n, valor: soma[n]}));
+  }
+  return itens.sort((a, b) => b.valor - a.valor);
+}
+
+function desenharPainelModulos(){
+  document.getElementById('painelModulos').innerHTML = PAINEL_MODULOS.map(m => `
+    <div class="pm-item">
+      <span class="pm-icone">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${m.icone}</svg>
+      </span>
+      <div class="pm-valor">${painelDados.modulos[m.key] || 0}</div>
+      <div class="pm-nome">${m.rotulo}</div>
+    </div>`).join('');
+}
+
+function desenharPainelEquipes(){
+  document.getElementById('graficoEquipes').innerHTML = painelBarrasHtml(
+    painelPorEquipe(painelDados.diarios_por_equipe),
+    {clicavel: true, selecionada: painelEquipeSel}
+  );
+}
+
+function desenharPainelColab(){
+  document.getElementById('colabTitulo').textContent = painelEquipeSel
+    ? 'Diários por colaborador — equipe ' + painelNomeEquipe(painelEquipeSel)
+    : 'Diários por colaborador — todas as equipes';
+  document.getElementById('painelLimparEquipe').hidden = !painelEquipeSel;
+  document.getElementById('graficoColab').innerHTML = painelBarrasHtml(painelColabItens());
+}
+
+function desenharPainelRondas(){
+  document.getElementById('graficoRondas').innerHTML = painelBarrasHtml(
+    painelPorEquipe(painelDados.rondas_por_equipe)
+  );
+}
+
+function desenharPainel(){
+  desenharPainelModulos();
+  desenharPainelEquipes();
+  desenharPainelColab();
+  desenharPainelRondas();
+}
+
+async function carregarPainel(){
+  const ini = document.getElementById('painelInicio').value;
+  const fim = document.getElementById('painelFim').value;
+  if(!ini || !fim){
+    showToast('Informe a data inicial e a final.', true);
+    return;
+  }
+  if(ini > fim){
+    showToast('A data inicial não pode ser maior que a final.', true);
+    return;
+  }
+  try{
+    painelDados = await apiGet('estatisticas/?inicio=' + encodeURIComponent(ini) + '&fim=' + encodeURIComponent(fim));
+    painelEquipeSel = null;
+    desenharPainel();
+    localStorage.setItem('db_painel_data_inicio', ini);
+    localStorage.setItem('db_painel_data_fim', fim);
+  }catch(err){
+    showToast('Erro ao carregar o painel: ' + err.message, true);
+  }
+}
+
+function iniciarPainel(){
+  const ini = document.getElementById('painelInicio');
+  const fim = document.getElementById('painelFim');
+  const salvoIni = localStorage.getItem('db_painel_data_inicio');
+  const salvoFim = localStorage.getItem('db_painel_data_fim');
+  const hoje = hojeLocalISO();
+  if(!ini.value) ini.value = salvoIni || hoje;
+  if(!fim.value) fim.value = salvoFim || hoje;
+  carregarPainel();
+  verificarDicaFiltroEquipe();
+}
+
+function verificarDicaFiltroEquipe(){
+  const chave = 'db_dica_equipe_vista_' + usuarioLabel;
+  const dica = document.getElementById('dicaFiltroEquipe');
+  if(!dica) return;
+  dica.style.display = localStorage.getItem(chave) ? 'none' : 'flex';
+}
+
+document.getElementById('btnFecharDicaEquipe').addEventListener('click', ()=>{
+  localStorage.setItem('db_dica_equipe_vista_' + usuarioLabel, '1');
+  document.getElementById('dicaFiltroEquipe').style.display = 'none';
+});
+
+document.getElementById('painelAplicar').addEventListener('click', carregarPainel);
+
+document.getElementById('painelLimparEquipe').addEventListener('click', ()=>{
+  painelEquipeSel = null;
+  desenharPainelEquipes();
+  desenharPainelColab();
+});
+
+document.getElementById('graficoEquipes').addEventListener('click', e=>{
+  const linha = e.target.closest('.barra-linha');
+  if(!linha || !painelDados) return;
+  const eq = linha.dataset.chave;
+  painelEquipeSel = (painelEquipeSel === eq) ? null : eq;
+  desenharPainelEquipes();
+  desenharPainelColab();
+});
 
 // ===== INICIALIZAÇÃO =====
 goTo('novo');

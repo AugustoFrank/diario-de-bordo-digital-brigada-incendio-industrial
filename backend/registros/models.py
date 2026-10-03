@@ -43,6 +43,7 @@ class Ocorrencia(models.Model):
     diario = models.ForeignKey(Diario, on_delete=models.CASCADE, related_name='ocorrencias')
     modulo = models.CharField(max_length=30, choices=MODULO_CHOICES)
     dados = models.JSONField()
+    evidencia = models.FileField(upload_to='evidencias/%Y/%m/', null=True, blank=True)
     criado_em = models.DateTimeField(auto_now_add=True)
 
     class Meta:

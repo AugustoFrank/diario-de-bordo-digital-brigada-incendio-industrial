@@ -52,9 +52,6 @@
 
 * {
   box-sizing: border-box;
-}
-
-html, body {
   margin: 0;
   padding: 0;
 }
@@ -1734,4 +1731,239 @@ tbody tr:hover {
 #contagemModulosWrap::-webkit-scrollbar-thumb {
   background: var(--border);
   border-radius: 10px;
+}
+
+/* ===== PAINEL GERAL: FILTRO, MÓDULOS E GRÁFICOS ===== */
+.painel-filtro {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+
+.filtro-campo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.filtro-campo input[type="date"] {
+  font-family: 'Poppins', sans-serif;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+}
+
+[data-theme="dark"] .filtro-campo input[type="date"] {
+  color-scheme: dark;
+}
+
+.painel-filtro .btn {
+  margin-left: auto;
+}
+
+@media (max-width: 560px) {
+  .filtro-campo {
+    flex: 1;
+  }
+  .filtro-campo input[type="date"] {
+    flex: 1;
+    min-width: 0;
+  }
+  .painel-filtro .btn {
+    margin-left: 0;
+    width: 100%;
+  }
+}
+
+.painel-secao-titulo {
+  font-family: 'Poppins';
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 12px;
+}
+
+.painel-modulos-wrap {
+  position: relative;
+  margin-bottom: 26px;
+}
+
+.painel-modulos {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+}
+
+@media (max-width: 900px) {
+  .painel-modulos {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  .painel-modulos {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    max-height: 280px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  .painel-modulos::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .painel-modulos::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .painel-modulos::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 10px;
+  }
+
+  .painel-modulos-wrap::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 30px;
+    background: linear-gradient(to bottom, transparent, var(--surface));
+    pointer-events: none;
+  }
+
+  [data-theme="dark"] .painel-modulos-wrap::after {
+  background: linear-gradient(to bottom, transparent, #17130F);
+}
+}
+
+.pm-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+
+.pm-icone {
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-sm);
+  background: var(--tint-ember-bg);
+  color: var(--tint-ember-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pm-icone svg {
+  width: 14px;
+  height: 14px;
+}
+
+.pm-valor {
+  font-family: 'Poppins';
+  font-weight: 600;
+  font-size: 20px;
+  line-height: 1;
+  color: var(--text);
+}
+
+.pm-nome {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.card-topo {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.barra-linha {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 0;
+  font-size: 13px;
+}
+
+.barra-linha.clicavel {
+  cursor: pointer;
+}
+
+.barra-nome {
+  width: 96px;
+  flex-shrink: 0;
+  font-weight: 500;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.barra-trilho {
+  flex: 1;
+  height: 10px;
+  background: var(--recessed);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.barra-fill {
+  height: 100%;
+  background: var(--text-muted);
+  border-radius: 99px;
+  transition: width .3s ease;
+}
+
+.barra-linha.clicavel:hover .barra-fill {
+  background: var(--ember-600);
+}
+
+.barra-linha.ativa .barra-fill {
+  background: var(--ember-600);
+}
+
+.barra-linha.apagada {
+  opacity: .45;
+}
+
+.barra-valor {
+  width: 32px;
+  text-align: right;
+  font-family: 'Poppins';
+  font-weight: 600;
+  color: var(--text);
+}
+
+.barra-vazio {
+  font-size: 13px;
+  color: var(--text-muted);
+  padding: 8px 0;
+}
+
+.dm-thumb {
+  display: block;
+  width: 140px;
+  max-width: 100%;
+  height: 100px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid rgba(128, 128, 128, 0.35);
+  margin-top: 6px;
 }

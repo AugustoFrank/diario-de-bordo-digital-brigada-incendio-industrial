@@ -441,49 +441,53 @@
 
     <!-- ===== VIEW: PAINEL ===== -->
     <section class="view" id="view-painel">
-      <div class="kpis">
-        <div class="kpi">
-          <div class="kpi-label">Diários no mês</div>
-          <div class="kpi-value" id="kpiTotal">0</div>
-          <div class="kpi-hint">Registros de turno lançados</div>
-        </div>
-        <div class="kpi">
-          <div class="kpi-label">Bombas fora do automático</div>
-          <div class="kpi-value" id="kpiAlteracoes">0</div>
-          <div class="kpi-hint">No último diário, somando as 3 rondas</div>
-        </div>
-        <div class="kpi">
-          <div class="kpi-label">R.T.I médio</div>
-          <div class="kpi-value" id="kpiPipa">0%</div>
-          <div class="kpi-hint">Média das rondas do último diário</div>
-        </div>
-        <div class="kpi">
-          <div class="kpi-label">Rondas do turno</div>
-          <div class="kpi-value" id="kpiUltima" style="font-size:19px;">—</div>
-          <div class="kpi-hint" id="kpiUltimaHint">—</div>
-        </div>
+      <div class="painel-filtro">
+        <label class="filtro-campo">De
+          <input type="date" id="painelInicio">
+        </label>
+        <label class="filtro-campo">Até
+          <input type="date" id="painelFim">
+        </label>
+        <button type="button" class="btn btn-primary btn-sm" id="painelAplicar">Aplicar período</button>
       </div>
-
-      <div class="two-col">
-        <div class="card">
-          <h2>Bombas — última ronda registrada</h2>
-          <p class="card-sub">Com base na ronda mais recente do último diário</p>
-          <div id="barsWrap"></div>
-        </div>
-        <div class="card">
-          <h2>Pendências abertas</h2>
-          <p class="card-sub">Bombas fora do "Automático" no último diário</p>
-          <div id="pendingWrap"></div>
-        </div>
+      
+      <h3 class="painel-secao-titulo">Registros por módulo no período</h3>
+      <div class="painel-modulos-wrap">
+        <div class="painel-modulos" id="painelModulos"></div>
       </div>
 
       <div class="card">
-        <h2>Atividades do mês</h2>
-        <p class="card-sub">Quantos diários do mês tiveram cada módulo preenchido</p>
-        <div class="activity-grid" id="activityWrap"></div>
+        <div class="card" id="dicaFiltroEquipe" style="display:none;background:var(--tint-amber-bg);border:1px solid var(--tint-amber-text);">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span style="font-size:18px;">💡</span>
+              <span style="font-size:13.5px;color:var(--tint-amber-text);">Toque numa barra de equipe no gráfico abaixo para ver só os colaboradores dela.</span>
+            </div>
+            <button type="button" id="btnFecharDicaEquipe" style="background:none;border:none;cursor:pointer;color:var(--tint-amber-text);font-size:18px;line-height:1;">×</button>
+          </div>
+        </div>
+        <h2>Diários por equipe</h2>
+        <p class="card-sub">Clique numa barra para ver os colaboradores dessa equipe</p>
+        <div id="graficoEquipes"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-topo">
+          <h2 id="colabTitulo">Diários por colaborador — todas as equipes</h2>
+          <button type="button" class="btn btn-ghost btn-sm" id="painelLimparEquipe" hidden>Limpar filtro</button>
+        </div>
+        <p class="card-sub">Detalha quem registrou mais na equipe selecionada acima</p>
+        <div id="graficoColab"></div>
+      </div>
+
+      <div class="card">
+        <h2>Rondas por equipe</h2>
+        <p class="card-sub">Quais equipes mais verificaram as bombas no período</p>
+        <div id="graficoRondas"></div>
       </div>
     </section>
-    <section class="view" id="view-novo">
+    
+        <section class="view" id="view-novo">
 
       <div class="card" id="avisoPendenteCard" style="display:none;background:var(--tint-amber-bg);border:1px solid var(--tint-amber-text);">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
@@ -514,23 +518,23 @@
           </div>
         </div>
       </div>
-    
+
       <div class="card" id="cardAtividadesModulo">
         <h2>Atividades do diário atual</h2>
         <p class="card-sub">Quantas vezes cada módulo foi adicionado neste diário</p>
         <div class="activity-grid" id="contagemModulosWrap"></div>
       </div>
-    
+
       <div class="card">
         <h2>Adicionar registro</h2>
         <p class="card-sub">Toque em um módulo para preencher e adicionar ao diário</p>
         <div class="modulos-grid" id="modulosBotoesWrap"></div>
       </div>
-    
+
       <div class="form-actions">
         <button type="button" class="btn btn-primary" id="btnFinalizarDiario">Finalizar diário</button>
       </div>
-    
+
     </section>
 
     <!-- ===== VIEW: HISTÓRICO ===== -->

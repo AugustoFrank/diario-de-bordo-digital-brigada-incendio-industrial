@@ -1898,7 +1898,7 @@ tbody tr:hover {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 6px 0;
+  padding: 4px 0;
   font-size: 13px;
 }
 
@@ -1907,7 +1907,7 @@ tbody tr:hover {
 }
 
 .barra-nome {
-  width: 96px;
+  width: 150px;
   flex-shrink: 0;
   font-weight: 500;
   color: var(--text);
@@ -1916,45 +1916,89 @@ tbody tr:hover {
   white-space: nowrap;
 }
 
-.barra-trilho {
+@media (max-width: 560px) {
+  .barra-nome {
+    width: 96px;
+  }
+}
+
+.barra-area {
   flex: 1;
-  height: 10px;
-  background: var(--recessed);
-  border-radius: 99px;
-  overflow: hidden;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  border-right: 1px solid var(--border);
+  background-image: repeating-linear-gradient(
+    to right,
+    var(--border) 0,
+    var(--border) 1px,
+    transparent 1px,
+    transparent calc(100% / var(--seg))
+  );
 }
 
 .barra-fill {
-  height: 100%;
-  background: var(--text-muted);
-  border-radius: 99px;
+  flex: none;
+  height: 22px;
+  border-radius: 8px;
+  background: linear-gradient(90deg, var(--ember-600), var(--amber-500));
   transition: width .3s ease;
 }
 
-.barra-linha.clicavel:hover .barra-fill {
-  background: var(--ember-600);
-}
-
-.barra-linha.ativa .barra-fill {
-  background: var(--ember-600);
-}
-
-.barra-linha.apagada {
-  opacity: .45;
+.tom-moss .barra-fill {
+  background: linear-gradient(90deg, var(--moss-600), #8FB586);
 }
 
 .barra-valor {
-  width: 32px;
-  text-align: right;
+  flex-shrink: 0;
   font-family: 'Poppins';
   font-weight: 600;
   color: var(--text);
+}
+
+.barra-linha.clicavel:hover .barra-fill {
+  filter: brightness(1.12);
+}
+
+.barra-linha.ativa .barra-nome {
+  color: var(--ember-600);
+  font-weight: 600;
+}
+
+.barra-linha.apagada {
+  opacity: .4;
+}
+
+.eixo-linha {
+  display: flex;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.eixo-marcas {
+  flex: 1;
+  position: relative;
+  height: 18px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.eixo-marcas span {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
 }
 
 .barra-vazio {
   font-size: 13px;
   color: var(--text-muted);
   padding: 8px 0;
+}
+
+.btn[hidden] {
+  display: none;
 }
 
 .dm-thumb {
@@ -1966,4 +2010,168 @@ tbody tr:hover {
   border-radius: 8px;
   border: 1px solid rgba(128, 128, 128, 0.35);
   margin-top: 6px;
+}
+
+
+/* ===== GRÁFICO DE COLUNAS (vertical) ===== */
+.gv {
+  position: relative;
+  padding-left: 36px;
+}
+
+.gv-grade {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 200px;
+  pointer-events: none;
+}
+
+.gv-tick {
+  position: absolute;
+  left: 36px;
+  right: 0;
+  height: 0;
+  border-top: 1px solid var(--border);
+}
+
+.gv-tick i {
+  position: absolute;
+  left: -36px;
+  top: -8px;
+  width: 28px;
+  text-align: right;
+  font-style: normal;
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--text-muted);
+}
+
+.gv-colunas {
+  position: relative;
+  display: flex;
+  gap: 8px;
+}
+
+.gv-col {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.gv-col.clicavel {
+  cursor: pointer;
+}
+
+.gv-area {
+  height: 200px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.gv-valor {
+  flex: none;
+  font-family: 'Poppins';
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.gv-barra {
+  flex: none;
+  width: min(46%, 42px);
+  border-radius: 8px 8px 0 0;
+  background: linear-gradient(0deg, var(--ember-600), var(--amber-500));
+  transition: height .3s ease;
+}
+
+.tom-moss .gv-barra {
+  background: linear-gradient(0deg, var(--moss-600), #8FB586);
+}
+
+.gv-rotulo {
+  margin-top: 8px;
+  max-width: 100%;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text);
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gv-col.clicavel:hover .gv-barra {
+  filter: brightness(1.12);
+}
+
+.gv-col.ativa .gv-rotulo {
+  color: var(--ember-600);
+  font-weight: 600;
+}
+
+.gv-col.apagada {
+  opacity: .4;
+}
+
+@media (max-width: 560px) {
+  .gv-colunas {
+    gap: 6px;
+  }
+  .gv-rotulo {
+    font-size: 11px;
+  }
+}
+
+
+/* ===== COLUNAS COM ROLAGEM (colaboradores) ===== */
+.gv-rolar .gv-colunas {
+  overflow-x: auto;
+  padding-bottom: 14px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--ember-600) transparent;
+}
+
+.gv-rolar .gv-colunas::-webkit-scrollbar {
+  height: 6px;
+}
+
+.gv-rolar .gv-colunas::-webkit-scrollbar-track {
+  background: var(--border);
+  border-radius: 10px;
+}
+
+.gv-rolar .gv-colunas::-webkit-scrollbar-thumb {
+  background: var(--ember-600);
+  border-radius: 10px;
+}
+
+.gv-rolar .gv-colunas::-webkit-scrollbar-thumb:hover {
+  background: var(--amber-500);
+}
+.gv-rolar .gv-col {
+  flex: 1 0 76px;
+}
+
+.gv-rolar .gv-rotulo {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.25;
+  padding: 0 2px;
+}
+
+@media (max-width: 560px) {
+  .gv-rolar .gv-col {
+    flex: 1 0 68px;
+  }
 }

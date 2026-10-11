@@ -857,22 +857,88 @@ function painelNomeColab(nome){
   return (typeof nomeParaLabel === 'function') ? nomeParaLabel(nome) : nome;
 }
 
+function painelEscala(max){
+  if(!max) return {passo: 1, seg: 4};
+  const alvo = max * 1.15;
+  for(let p = 1; ; p *= 10){
+    for(const m of [1, 2, 5]){
+      const passo = p * m;
+      const seg = Math.ceil(alvo / passo);
+      if(seg <= 5) return {passo: passo, seg: Math.max(seg, 2)};
+    }
+  }
+}
+
 function painelBarrasHtml(itens, opts){
   opts = opts || {};
   if(!itens.length) return '<div class="barra-vazio">Sem registros no período.</div>';
-  const max = Math.max.apply(null, itens.map(i => i.valor)) || 0;
-  return itens.map(i=>{
-    const pct = max ? Math.round(i.valor / max * 100) : 0;
+  const max = Math.max.apply(null, itens.map(i => i.valor));
+  const esc = painelEscala(max);
+  const topo = esc.passo * esc.seg;
+
+  const linhas = itens.map(i=>{
+    const pct = (i.valor / topo) * 100;
     let cls = 'barra-linha';
     if(opts.clicavel) cls += ' clicavel';
     if(opts.selecionada) cls += (i.chave === opts.selecionada) ? ' ativa' : ' apagada';
     return `
       <div class="${cls}" data-chave="${painelEsc(i.chave || '')}" title="${painelEsc(i.titulo || i.rotulo)}">
         <span class="barra-nome">${painelEsc(i.rotulo)}</span>
-        <span class="barra-trilho"><span class="barra-fill" style="width:${pct}%"></span></span>
-        <span class="barra-valor">${i.valor}</span>
+        <span class="barra-area" style="--seg:${esc.seg}">
+          <span class="barra-fill" style="width:${pct}%"></span>
+          <span class="barra-valor">${i.valor}</span>
+        </span>
       </div>`;
   }).join('');
+
+  let marcas = '';
+  for(let k = 0; k <= esc.seg; k++){
+    marcas += `<span style="left:${(k / esc.seg) * 100}%">${k * esc.passo}</span>`;
+  }
+
+  return `
+    <div class="grafico ${opts.tom ? 'tom-' + opts.tom : ''}">
+      ${linhas}
+      <div class="eixo-linha">
+        <span class="barra-nome"></span>
+        <span class="eixo-marcas">${marcas}</span>
+      </div>
+    </div>`;
+}
+
+function painelColunasHtml(itens, opts){
+  opts = opts || {};
+  if(!itens.length) return '<div class="barra-vazio">Sem registros no período.</div>';
+  const max = Math.max.apply(null, itens.map(i => i.valor));
+  const esc = painelEscala(max);
+  const topo = esc.passo * esc.seg;
+
+  let grade = '';
+  for(let k = 0; k <= esc.seg; k++){
+    grade += `<span class="gv-tick" style="bottom:${(k / esc.seg) * 100}%"><i>${k * esc.passo}</i></span>`;
+  }
+
+  const colunas = itens.map(i=>{
+    const pct = (i.valor / topo) * 100;
+    let cls = 'gv-col';
+    if(opts.clicavel) cls += ' clicavel';
+    if(opts.selecionada) cls += (i.chave === opts.selecionada) ? ' ativa' : ' apagada';
+    return `
+      <div class="${cls}" data-chave="${painelEsc(i.chave || '')}" title="${painelEsc(i.titulo || i.rotulo)}">
+        <div class="gv-area">
+          <span class="gv-valor">${i.valor}</span>
+          <span class="gv-barra" style="height:${pct}%"></span>
+        </div>
+        <span class="gv-rotulo">${painelEsc(i.rotulo)}</span>
+      </div>`;
+  }).join('');
+
+  const extra = (opts.tom ? ' tom-' + opts.tom : '') + (opts.rolar ? ' gv-rolar' : '');
+  return `
+    <div class="gv${extra}">
+      <div class="gv-grade">${grade}</div>
+      <div class="gv-colunas">${colunas}</div>
+    </div>`;
 }
 
 function painelPorEquipe(lista){
@@ -912,7 +978,7 @@ function desenharPainelModulos(){
 }
 
 function desenharPainelEquipes(){
-  document.getElementById('graficoEquipes').innerHTML = painelBarrasHtml(
+  document.getElementById('graficoEquipes').innerHTML = painelColunasHtml(
     painelPorEquipe(painelDados.diarios_por_equipe),
     {clicavel: true, selecionada: painelEquipeSel}
   );
@@ -923,15 +989,15 @@ function desenharPainelColab(){
     ? 'Diários por colaborador — equipe ' + painelNomeEquipe(painelEquipeSel)
     : 'Diários por colaborador — todas as equipes';
   document.getElementById('painelLimparEquipe').hidden = !painelEquipeSel;
-  document.getElementById('graficoColab').innerHTML = painelBarrasHtml(painelColabItens());
+  document.getElementById('graficoColab').innerHTML = painelColunasHtml(painelColabItens(), {rolar: true});
 }
 
 function desenharPainelRondas(){
-  document.getElementById('graficoRondas').innerHTML = painelBarrasHtml(
-    painelPorEquipe(painelDados.rondas_por_equipe)
+  document.getElementById('graficoRondas').innerHTML = painelColunasHtml(
+    painelPorEquipe(painelDados.rondas_por_equipe),
+    {tom: 'moss'}
   );
 }
-
 function desenharPainel(){
   desenharPainelModulos();
   desenharPainelEquipes();
@@ -994,7 +1060,7 @@ document.getElementById('painelLimparEquipe').addEventListener('click', ()=>{
 });
 
 document.getElementById('graficoEquipes').addEventListener('click', e=>{
-  const linha = e.target.closest('.barra-linha');
+  const linha = e.target.closest('[data-chave]');
   if(!linha || !painelDados) return;
   const eq = linha.dataset.chave;
   painelEquipeSel = (painelEquipeSel === eq) ? null : eq;

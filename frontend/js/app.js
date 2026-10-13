@@ -379,18 +379,51 @@ function popularSelect(selectEl, opcoes){
 let evidenciaArquivoAtual = null;
 
 function wireEvidencia(container, inputId, labelId){
-  const input = container.querySelector('#' + inputId);
+  const input = container.querySelector('#' + inputId); // galeria (sem capture)
   const label = container.querySelector('#' + labelId);
+  const TEXTO_PADRAO = 'Escolher da galeria';
   let nome = null;
   evidenciaArquivoAtual = null;
-  if(input){
-    input.addEventListener('change', (e)=>{
+  if(!input) return { get:()=>nome };
+
+  if(label) label.textContent = TEXTO_PADRAO;
+
+  // segundo input, só pra câmera
+  const cam = document.createElement('input');
+  cam.type = 'file';
+  cam.accept = 'image/*';
+  cam.setAttribute('capture', 'environment');
+  cam.style.display = 'none';
+
+  const btnCam = document.createElement('button');
+  btnCam.type = 'button';
+  btnCam.className = 'btn btn-ghost btn-sm';
+  btnCam.textContent = 'Tirar foto';
+  btnCam.addEventListener('click', ()=> cam.click());
+
+  const ancora = (label && (label.closest('label') || label.parentElement)) || input;
+  ancora.insertAdjacentElement('afterend', btnCam);
+  btnCam.insertAdjacentElement('afterend', cam);
+
+  function tratar(origem, outro){
+    origem.addEventListener('change', (e)=>{
       const file = e.target.files[0];
-      nome = file ? file.name : null;
-      evidenciaArquivoAtual = file || null;
-      if(label) label.textContent = nome || 'Tirar foto ou anexar da galeria';
+      if(!file){
+        if(outro.files[0]) return; // cancelou aqui, mas já havia foto escolhida no outro
+        nome = null;
+        evidenciaArquivoAtual = null;
+        if(label) label.textContent = TEXTO_PADRAO;
+        return;
+      }
+      outro.value = '';
+      nome = file.name;
+      evidenciaArquivoAtual = file;
+      if(label) label.textContent = nome;
     });
   }
+  tratar(input, cam);
+  tratar(cam, input);
+
   return { get:()=>nome };
 }
 

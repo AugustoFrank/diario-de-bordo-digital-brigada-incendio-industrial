@@ -381,44 +381,65 @@ let evidenciaArquivoAtual = null;
 function wireEvidencia(container, inputId, labelId){
   const input = container.querySelector('#' + inputId); // galeria (sem capture)
   const label = container.querySelector('#' + labelId);
-  const TEXTO_PADRAO = 'Escolher da galeria';
   let nome = null;
   evidenciaArquivoAtual = null;
   if(!input) return { get:()=>nome };
 
-  if(label) label.textContent = TEXTO_PADRAO;
+  // o botão tracejado que já existe (vira o botão da galeria)
+  const botaoGaleria = input.closest('label') || (label && label.closest('label')) || (label && label.parentElement);
+  if(!botaoGaleria) return { get:()=>nome };
 
-  // segundo input, só pra câmera
+  // linha com os dois botões lado a lado
+  const linha = document.createElement('div');
+  linha.style.cssText = 'display:flex;gap:10px;';
+  botaoGaleria.parentNode.insertBefore(linha, botaoGaleria);
+  linha.appendChild(botaoGaleria);
+  botaoGaleria.style.flex = '1 1 0';
+  botaoGaleria.style.minWidth = '0';
+  if(label) label.textContent = 'Galeria';
+
+  // botão da câmera: mesma aparência do da galeria
   const cam = document.createElement('input');
   cam.type = 'file';
   cam.accept = 'image/*';
   cam.setAttribute('capture', 'environment');
   cam.style.display = 'none';
 
-  const btnCam = document.createElement('button');
-  btnCam.type = 'button';
-  btnCam.className = 'btn btn-ghost btn-sm';
-  btnCam.textContent = 'Tirar foto';
-  btnCam.addEventListener('click', ()=> cam.click());
+  const botaoCam = botaoGaleria.cloneNode(false);
+  botaoCam.removeAttribute('for');
+  botaoCam.removeAttribute('id');
+  const svgOrig = botaoGaleria.querySelector('svg');
+  let icone = '';
+  if(svgOrig){
+    const s = svgOrig.cloneNode(false);
+    s.innerHTML = '<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>';
+    icone = s.outerHTML;
+  }
+  botaoCam.innerHTML = icone + '<span>Tirar foto</span>';
+  botaoCam.addEventListener('click', ()=> cam.click());
+  linha.appendChild(botaoCam);
+  linha.appendChild(cam);
 
-  const ancora = (label && (label.closest('label') || label.parentElement)) || input;
-  ancora.insertAdjacentElement('afterend', btnCam);
-  btnCam.insertAdjacentElement('afterend', cam);
+  // linha de status com o nome do arquivo escolhido
+  const status = document.createElement('div');
+  status.style.cssText = 'display:none;margin-top:8px;font-size:12.5px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+  linha.insertAdjacentElement('afterend', status);
 
   function tratar(origem, outro){
     origem.addEventListener('change', (e)=>{
       const file = e.target.files[0];
       if(!file){
-        if(outro.files[0]) return; // cancelou aqui, mas já havia foto escolhida no outro
+        if(outro.files[0]) return; // cancelou aqui, mas já havia foto no outro
         nome = null;
         evidenciaArquivoAtual = null;
-        if(label) label.textContent = TEXTO_PADRAO;
+        status.style.display = 'none';
         return;
       }
       outro.value = '';
       nome = file.name;
       evidenciaArquivoAtual = file;
-      if(label) label.textContent = nome;
+      status.textContent = '✓ ' + nome;
+      status.style.display = 'block';
     });
   }
   tratar(input, cam);

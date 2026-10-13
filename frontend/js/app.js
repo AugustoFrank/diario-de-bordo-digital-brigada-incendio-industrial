@@ -385,7 +385,6 @@ function wireEvidencia(container, inputId, labelId){
   evidenciaArquivoAtual = null;
   if(!input) return { get:()=>nome };
 
-  // o botão tracejado que já existe (vira o botão da galeria)
   const botaoGaleria = input.closest('label') || (label && label.closest('label')) || (label && label.parentElement);
   if(!botaoGaleria) return { get:()=>nome };
 
@@ -420,30 +419,53 @@ function wireEvidencia(container, inputId, labelId){
   linha.appendChild(botaoCam);
   linha.appendChild(cam);
 
-  // linha de status com o nome do arquivo escolhido
-  const status = document.createElement('div');
-  status.style.cssText = 'display:none;margin-top:8px;font-size:12.5px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
-  linha.insertAdjacentElement('afterend', status);
+  // prévia da foto escolhida (aparece no lugar dos botões)
+  const previa = document.createElement('div');
+  previa.style.cssText = 'display:none;align-items:center;gap:12px;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);';
+  const miniatura = document.createElement('img');
+  miniatura.alt = 'Foto escolhida';
+  miniatura.style.cssText = 'width:56px;height:56px;object-fit:cover;border-radius:8px;flex:none;';
+  const textoPrevia = document.createElement('span');
+  textoPrevia.style.cssText = 'flex:1;min-width:0;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+  const btnRemover = document.createElement('button');
+  btnRemover.type = 'button';
+  btnRemover.className = 'btn btn-ghost btn-sm';
+  btnRemover.textContent = 'Remover';
+  previa.appendChild(miniatura);
+  previa.appendChild(textoPrevia);
+  previa.appendChild(btnRemover);
+  linha.insertAdjacentElement('afterend', previa);
 
-  function tratar(origem, outro){
-    origem.addEventListener('change', (e)=>{
-      const file = e.target.files[0];
-      if(!file){
-        if(outro.files[0]) return; // cancelou aqui, mas já havia foto no outro
-        nome = null;
-        evidenciaArquivoAtual = null;
-        status.style.display = 'none';
-        return;
-      }
-      outro.value = '';
-      nome = file.name;
-      evidenciaArquivoAtual = file;
-      status.textContent = '✓ ' + nome;
-      status.style.display = 'block';
-    });
+  let urlPrevia = null;
+
+  function escolher(file){
+    nome = file.name;
+    evidenciaArquivoAtual = file;
+    if(urlPrevia) URL.revokeObjectURL(urlPrevia);
+    urlPrevia = URL.createObjectURL(file);
+    miniatura.src = urlPrevia;
+    textoPrevia.textContent = nome;
+    linha.style.display = 'none';
+    previa.style.display = 'flex';
   }
-  tratar(input, cam);
-  tratar(cam, input);
+
+  function limpar(){
+    input.value = '';
+    cam.value = '';
+    nome = null;
+    evidenciaArquivoAtual = null;
+    if(urlPrevia){ URL.revokeObjectURL(urlPrevia); urlPrevia = null; }
+    previa.style.display = 'none';
+    linha.style.display = 'flex';
+  }
+
+  [input, cam].forEach(el=>{
+    el.addEventListener('change', (e)=>{
+      const file = e.target.files[0];
+      if(file) escolher(file);
+    });
+  });
+  btnRemover.addEventListener('click', limpar);
 
   return { get:()=>nome };
 }
